@@ -59,10 +59,13 @@ class Settings(BaseSettings):
     code_eval_docker_force_no_network: bool = True
     code_eval_docker_auto_pull: bool = True
     code_eval_enable_shim_retry: bool = True
+    code_eval_enable_ai_shim_generation: bool = False
     code_eval_microvm_enable_adapter: bool = False
     code_eval_microvm_runtime_mode: str = "pending"
     code_eval_microvm_allow_fallback: bool = True
     code_eval_microvm_fallback_backend: str = "docker"
+    code_eval_microvm_force_no_network: bool = True
+    code_eval_microvm_serial_lock_file: str = "/tmp/codeeval-firecracker/firecracker-vsock.lock"
     code_eval_microvm_runtime_bridge_url: str = ""
     code_eval_microvm_runtime_bridge_api_key: str = ""
     code_eval_microvm_runtime_bridge_timeout_seconds: float = 30.0
@@ -77,6 +80,10 @@ class Settings(BaseSettings):
     code_eval_microvm_vsock_port: int = 7000
     code_eval_microvm_vsock_uds_path: str = "/tmp/firecracker-snap-python311.vsock"
     code_eval_microvm_vsock_connect_timeout_seconds: float = 5.0
+    code_eval_microvm_env_build_strategy: str = "deterministic_key"
+    code_eval_microvm_env_build_script: str = "/app/microvm/scripts/create_snapshot_with_guest_agent.sh"
+    code_eval_microvm_env_build_snapshot_dir: str = "/opt/microvm/snapshots"
+    code_eval_microvm_env_build_snapshot_name_prefix: str = "codeeval"
 
     @model_validator(mode="after")
     def _validate_default_model(self):

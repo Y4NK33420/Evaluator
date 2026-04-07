@@ -92,6 +92,10 @@ class EnvironmentSpec(BaseModel):
     assignment_overrides: dict[str, str] = Field(default_factory=dict)
     lockfile_content: str | None = None
     image_reference: str | None = None
+    snapshot_vmstate_path: str | None = None
+    snapshot_mem_path: str | None = None
+    snapshot_vmstate_sha256: str | None = None
+    snapshot_mem_sha256: str | None = None
     clean_strategy: str = "ephemeral_clone"
 
 

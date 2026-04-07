@@ -1,13 +1,14 @@
 """Execution adapter boundary for code-evaluator jobs.
 
-This phase includes an opt-in local Python executor so the lifecycle can be
-validated end-to-end before microVM orchestration is wired in.
+Includes local and docker reference executors for Python, C, C++, and Java,
+plus microVM adapter dispatch.
 """
 
 from __future__ import annotations
 
 import subprocess
 import shlex
+import shutil
 import sys
 import tempfile
 import io
@@ -66,6 +67,79 @@ def _truncate_output(stdout: str, stderr: str, max_output_kb: int) -> tuple[str,
     return stdout, err_bytes[:remaining].decode("utf-8", errors="ignore"), True
 
 
+def _run_process(
+    cmd: list[str],
+    *,
+    cwd: Path,
+    stdin_value: str | None,
+    timeout_seconds: float,
+) -> tuple[int, str, str, bool, str | None]:
+    try:
+        completed = subprocess.run(
+            cmd,
+            cwd=str(cwd),
+            input=stdin_value,
+            text=True,
+            capture_output=True,
+            timeout=timeout_seconds,
+        )
+        return completed.returncode, completed.stdout or "", completed.stderr or "", False, None
+    except subprocess.TimeoutExpired as exc:
+        stdout = (exc.stdout or "") if isinstance(exc.stdout, str) else ""
+        stderr = (exc.stderr or "") if isinstance(exc.stderr, str) else ""
+        stderr = (stderr + "\n" if stderr else "") + (
+            f"Execution timed out after {timeout_seconds:.2f}s"
+        )
+        return -1, stdout, stderr, True, "timeout"
+    except FileNotFoundError as exc:
+        return 127, "", str(exc), False, "runtime_unavailable"
+
+
+def _resolve_entrypoint_class_name(entrypoint: str) -> str:
+    class_name = Path(entrypoint).stem.strip()
+    if not class_name:
+        raise ValueError("Entrypoint for Java must be a .java source filename")
+    return class_name
+
+
+def _build_local_commands(
+    request: CodeEvalJobRequest,
+    testcase_argv: list[str],
+    case_dir: Path,
+) -> tuple[list[str] | None, list[str]]:
+    language = request.language.value
+    entrypoint = request.entrypoint
+
+    if language == "python":
+        return None, [sys.executable, entrypoint, *testcase_argv]
+
+    if language == "c":
+        if shutil.which("gcc") is None:
+            raise RuntimeError("Required compiler 'gcc' is not available on worker host")
+        binary_path = case_dir / ".codeeval_exec"
+        compile_cmd = ["gcc", entrypoint, "-O2", "-std=c11", "-o", str(binary_path)]
+        run_cmd = [str(binary_path), *testcase_argv]
+        return compile_cmd, run_cmd
+
+    if language == "cpp":
+        if shutil.which("g++") is None:
+            raise RuntimeError("Required compiler 'g++' is not available on worker host")
+        binary_path = case_dir / ".codeeval_exec"
+        compile_cmd = ["g++", entrypoint, "-O2", "-std=c++17", "-o", str(binary_path)]
+        run_cmd = [str(binary_path), *testcase_argv]
+        return compile_cmd, run_cmd
+
+    if language == "java":
+        if shutil.which("javac") is None or shutil.which("java") is None:
+            raise RuntimeError("Required Java runtime tools 'javac/java' are not available")
+        class_name = _resolve_entrypoint_class_name(entrypoint)
+        compile_cmd = ["javac", entrypoint]
+        run_cmd = ["java", "-cp", ".", class_name, *testcase_argv]
+        return compile_cmd, run_cmd
+
+    raise RuntimeError(f"Unsupported language runtime: {language}")
+
+
 def _run_single_testcase(
     request: CodeEvalJobRequest,
     case_dir: Path,
@@ -90,33 +164,60 @@ def _run_single_testcase(
             "output_truncated": False,
         }
 
-    cmd = [sys.executable, request.entrypoint]
-    if testcase.argv:
-        cmd.extend(testcase.argv)
+    argv = [str(arg) for arg in testcase.argv]
+    try:
+        compile_cmd, run_cmd = _build_local_commands(request, argv, case_dir)
+    except RuntimeError as exc:
+        return {
+            "testcase_id": testcase.testcase_id,
+            "passed": False,
+            "weight": float(testcase.weight),
+            "awarded_score": 0.0,
+            "exit_code": 127,
+            "stdout": "",
+            "stderr": str(exc),
+            "failure_reason": "runtime_unavailable",
+            "output_truncated": False,
+        }
+
+    if compile_cmd is not None:
+        compile_timeout = max(2.0, min(20.0, request.quota.timeout_seconds))
+        compile_exit, compile_stdout, compile_stderr, compile_timeout_hit, compile_reason = _run_process(
+            compile_cmd,
+            cwd=case_dir,
+            stdin_value=None,
+            timeout_seconds=compile_timeout,
+        )
+        if compile_timeout_hit or compile_exit != 0:
+            compile_stdout, compile_stderr, compile_output_truncated = _truncate_output(
+                compile_stdout,
+                compile_stderr,
+                request.quota.max_output_kb,
+            )
+            reasons = ["compile_timeout" if compile_timeout_hit else "compile_error"]
+            if compile_reason == "runtime_unavailable":
+                reasons = ["runtime_unavailable"]
+            if compile_output_truncated:
+                reasons.append("output_truncated")
+            return {
+                "testcase_id": testcase.testcase_id,
+                "passed": False,
+                "weight": float(testcase.weight),
+                "awarded_score": 0.0,
+                "exit_code": compile_exit,
+                "stdout": compile_stdout,
+                "stderr": compile_stderr,
+                "failure_reason": "|".join(reasons),
+                "output_truncated": compile_output_truncated,
+            }
 
     stdin_value = testcase.stdin if testcase.input_mode.value == "stdin" else None
-
-    try:
-        completed = subprocess.run(
-            cmd,
-            cwd=str(case_dir),
-            input=stdin_value,
-            text=True,
-            capture_output=True,
-            timeout=request.quota.timeout_seconds,
-        )
-        exit_code = completed.returncode
-        stdout = completed.stdout or ""
-        stderr = completed.stderr or ""
-        timeout_hit = False
-    except subprocess.TimeoutExpired as exc:
-        exit_code = -1
-        stdout = (exc.stdout or "") if isinstance(exc.stdout, str) else ""
-        stderr = (exc.stderr or "") if isinstance(exc.stderr, str) else ""
-        timeout_hit = True
-        stderr = (stderr + "\n" if stderr else "") + (
-            f"Execution timed out after {request.quota.timeout_seconds:.2f}s"
-        )
+    exit_code, stdout, stderr, timeout_hit, run_reason = _run_process(
+        run_cmd,
+        cwd=case_dir,
+        stdin_value=stdin_value,
+        timeout_seconds=request.quota.timeout_seconds,
+    )
 
     stdout, stderr, output_truncated = _truncate_output(
         stdout,
@@ -141,6 +242,8 @@ def _run_single_testcase(
     reasons: list[str] = []
     if timeout_hit:
         reasons.append("timeout")
+    if run_reason == "runtime_unavailable":
+        reasons.append("runtime_unavailable")
     if not exit_ok:
         reasons.append(f"exit_code_expected_{expected_exit}_got_{exit_code}")
     if not stdout_ok:
@@ -236,17 +339,47 @@ def _run_single_testcase_docker(
             "output_truncated": False,
         }
 
-    command: list[str] | str
+    entrypoint_q = shlex.quote(request.entrypoint)
+    argv_q = " ".join(shlex.quote(str(arg)) for arg in testcase.argv)
+
+    language = request.language.value
+    compile_part = ""
+    run_part = ""
+
+    if language == "python":
+        run_part = f"python {entrypoint_q}"
+    elif language == "c":
+        compile_part = f"gcc {entrypoint_q} -O2 -std=c11 -o /workspace/.codeeval_exec"
+        run_part = "/workspace/.codeeval_exec"
+    elif language == "cpp":
+        compile_part = f"g++ {entrypoint_q} -O2 -std=c++17 -o /workspace/.codeeval_exec"
+        run_part = "/workspace/.codeeval_exec"
+    elif language == "java":
+        class_name = _resolve_entrypoint_class_name(request.entrypoint)
+        compile_part = f"javac {entrypoint_q}"
+        run_part = f"java -cp /workspace {shlex.quote(class_name)}"
+    else:
+        return {
+            "testcase_id": testcase.testcase_id,
+            "passed": False,
+            "weight": float(testcase.weight),
+            "awarded_score": 0.0,
+            "exit_code": 127,
+            "stdout": "",
+            "stderr": f"Unsupported language runtime for docker backend: {language}",
+            "failure_reason": "runtime_unavailable",
+            "output_truncated": False,
+        }
+
+    if argv_q:
+        run_part = f"{run_part} {argv_q}"
+
     if testcase.input_mode.value == "stdin":
         staged_files[".stdin.txt"] = testcase.stdin or ""
-        quoted_args = " ".join(shlex.quote(arg) for arg in testcase.argv)
-        shell_cmd = f"python {shlex.quote(request.entrypoint)}"
-        if quoted_args:
-            shell_cmd = f"{shell_cmd} {quoted_args}"
-        shell_cmd = f"{shell_cmd} < /workspace/.stdin.txt"
-        command = ["/bin/sh", "-lc", shell_cmd]
-    else:
-        command = ["python", request.entrypoint, *testcase.argv]
+        run_part = f"{run_part} < /workspace/.stdin.txt"
+
+    shell_cmd = run_part if not compile_part else f"{compile_part} && {run_part}"
+    command: list[str] = ["/bin/sh", "-lc", shell_cmd]
 
     timeout_hit = False
     timeout_message = ""
@@ -368,27 +501,8 @@ def _execute_local_backend(
             shim_used=shim_used,
             shim_source=shim_source,
         ), {
-            "executor": "local_python_subprocess",
+            "executor": "local_subprocess",
             "enabled": False,
-            "comparison_mode": comparison_mode,
-            "testcases": [],
-        }
-
-    if request.language.value != "python":
-        return AttemptResult(
-            stage=stage,
-            passed=False,
-            exit_code=4,
-            stderr=(
-                f"Language '{request.language.value}' is not yet supported by "
-                "the local execution backend."
-            ),
-            score=0.0,
-            shim_used=shim_used,
-            shim_source=shim_source,
-        ), {
-            "executor": "local_python_subprocess",
-            "enabled": True,
             "comparison_mode": comparison_mode,
             "testcases": [],
         }
@@ -416,7 +530,7 @@ def _execute_local_backend(
             shim_used=shim_used,
             shim_source=shim_source,
         ), {
-            "executor": "local_python_subprocess",
+            "executor": "local_subprocess",
             "enabled": True,
             "comparison_mode": comparison_mode,
             "testcases": testcase_results,
@@ -444,8 +558,9 @@ def _execute_local_backend(
         shim_used=shim_used,
         shim_source=shim_source,
     ), {
-        "executor": "local_python_subprocess",
+        "executor": "local_subprocess",
         "enabled": True,
+        "language": request.language.value,
         "comparison_mode": comparison_mode,
         "shim_used": shim_used,
         "shim_source": shim_source,
@@ -454,7 +569,7 @@ def _execute_local_backend(
         "earned_score": round(total_score, 6),
         "testcases": testcase_results,
         "warnings": [
-            "Local executor is for controlled development use until containerized/microVM sandbox is integrated.",
+            "Local executor is for controlled development use until strict microVM-only enforcement is enabled.",
         ],
     }
 
@@ -467,25 +582,6 @@ def _execute_docker_backend(
     shim_used: bool,
     shim_source: str | None,
 ) -> tuple[AttemptResult, dict[str, Any]]:
-    if request.language.value != "python":
-        return AttemptResult(
-            stage=stage,
-            passed=False,
-            exit_code=4,
-            stderr=(
-                f"Language '{request.language.value}' is not yet supported by "
-                "the docker execution backend."
-            ),
-            score=0.0,
-            shim_used=shim_used,
-            shim_source=shim_source,
-        ), {
-            "executor": "docker_python",
-            "enabled": True,
-            "comparison_mode": comparison_mode,
-            "testcases": [],
-        }
-
     try:
         import docker
         docker_client = docker.from_env()
@@ -503,7 +599,7 @@ def _execute_docker_backend(
             shim_used=shim_used,
             shim_source=shim_source,
         ), {
-            "executor": "docker_python",
+            "executor": "docker_subprocess",
             "enabled": False,
             "comparison_mode": comparison_mode,
             "testcases": [],
@@ -525,7 +621,7 @@ def _execute_docker_backend(
                 shim_used=shim_used,
                 shim_source=shim_source,
             ), {
-                "executor": "docker_python",
+                "executor": "docker_subprocess",
                 "enabled": False,
                 "comparison_mode": comparison_mode,
                 "image": docker_image,
@@ -557,7 +653,7 @@ def _execute_docker_backend(
             shim_used=shim_used,
             shim_source=shim_source,
         ), {
-            "executor": "docker_python",
+            "executor": "docker_subprocess",
             "enabled": True,
             "comparison_mode": comparison_mode,
             "image": docker_image,
@@ -586,9 +682,10 @@ def _execute_docker_backend(
         shim_used=shim_used,
         shim_source=shim_source,
     ), {
-        "executor": "docker_python",
+        "executor": "docker_subprocess",
         "enabled": True,
         "image": docker_image,
+        "language": request.language.value,
         "comparison_mode": comparison_mode,
         "shim_used": shim_used,
         "shim_source": shim_source,
@@ -621,7 +718,7 @@ def execute_code_eval_job(
             shim_used=shim_used,
             shim_source=shim_source,
         ), {
-            "executor": "local_python_subprocess",
+            "executor": "local_subprocess",
             "comparison_mode": comparison_mode,
             "testcases": [],
         }

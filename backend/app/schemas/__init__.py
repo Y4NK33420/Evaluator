@@ -224,6 +224,7 @@ class CodeEvalEnvironmentPublishValidationOut(BaseModel):
 class CodeEvalRuntimeStatusOut(BaseModel):
     execution_backend: str
     shim_retry_enabled: bool
+    ai_shim_generation_enabled: bool = False
     microvm: dict[str, Any]
 
 

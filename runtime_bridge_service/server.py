@@ -11,6 +11,7 @@ import json
 import os
 import ssl
 import subprocess
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -171,6 +172,32 @@ def _safe_write_files(root: Path, files: dict[str, str]) -> None:
         target.write_text(content, encoding="utf-8")
 
 
+def _resolve_local_reference_commands(
+    language: str,
+    entrypoint: str,
+    argv: list[str],
+    case_dir: Path,
+) -> tuple[list[str] | None, list[str]]:
+    if language == "python":
+        return None, [sys.executable, entrypoint, *argv]
+    if language == "c":
+        if shutil.which("gcc") is None:
+            raise RuntimeError("gcc is required for C execution")
+        binary = case_dir / ".codeeval_exec"
+        return ["gcc", entrypoint, "-O2", "-std=c11", "-o", str(binary)], [str(binary), *argv]
+    if language == "cpp":
+        if shutil.which("g++") is None:
+            raise RuntimeError("g++ is required for C++ execution")
+        binary = case_dir / ".codeeval_exec"
+        return ["g++", entrypoint, "-O2", "-std=c++17", "-o", str(binary)], [str(binary), *argv]
+    if language == "java":
+        if shutil.which("javac") is None or shutil.which("java") is None:
+            raise RuntimeError("javac and java are required for Java execution")
+        class_name = Path(entrypoint).stem
+        return ["javac", entrypoint], ["java", "-cp", str(case_dir), class_name, *argv]
+    raise RuntimeError(f"Unsupported language: {language}")
+
+
 def _authorize(authorization: str | None) -> None:
     expected_key = os.getenv("RUNTIME_BRIDGE_API_KEY", "").strip()
     if not expected_key:
@@ -210,8 +237,7 @@ def runtime_status() -> RuntimeBridgeStatusOut:
 
 def _execute_local_reference(body: RuntimeBridgeExecuteRequest) -> RuntimeBridgeExecuteResponse:
     request = body.request
-    if request.language.lower() != "python":
-        raise HTTPException(status_code=422, detail="Only python is supported by reference bridge")
+    language = request.language.lower().strip()
 
     if not request.testcases:
         return RuntimeBridgeExecuteResponse(
@@ -256,6 +282,51 @@ def _execute_local_reference(body: RuntimeBridgeExecuteRequest) -> RuntimeBridge
 
                 cmd = [sys.executable, request.entrypoint, *testcase.argv]
                 stdin_value = testcase.stdin if testcase.input_mode == "stdin" else None
+
+                compile_cmd, cmd = _resolve_local_reference_commands(
+                    language,
+                    request.entrypoint,
+                    [str(arg) for arg in testcase.argv],
+                    case_dir,
+                )
+
+                if compile_cmd is not None:
+                    try:
+                        compile_result = subprocess.run(
+                            compile_cmd,
+                            cwd=str(case_dir),
+                            text=True,
+                            capture_output=True,
+                            timeout=max(2.0, min(request.quota.timeout_seconds, 20.0)),
+                        )
+                        if compile_result.returncode != 0:
+                            testcase_results.append(
+                                {
+                                    "testcase_id": testcase.testcase_id,
+                                    "passed": False,
+                                    "weight": float(testcase.weight),
+                                    "awarded_score": 0.0,
+                                    "exit_code": compile_result.returncode,
+                                    "stdout": compile_result.stdout or "",
+                                    "stderr": compile_result.stderr or "",
+                                    "failure_reason": "compile_error",
+                                }
+                            )
+                            continue
+                    except subprocess.TimeoutExpired:
+                        testcase_results.append(
+                            {
+                                "testcase_id": testcase.testcase_id,
+                                "passed": False,
+                                "weight": float(testcase.weight),
+                                "awarded_score": 0.0,
+                                "exit_code": -1,
+                                "stdout": "",
+                                "stderr": "Compilation timed out",
+                                "failure_reason": "compile_timeout",
+                            }
+                        )
+                        continue
 
                 timeout_hit = False
                 try:
@@ -352,6 +423,7 @@ def _execute_local_reference(body: RuntimeBridgeExecuteRequest) -> RuntimeBridge
         artifacts={
             "engine": "runtime_bridge_reference",
             "executor_mode": "local_reference",
+            "language": language,
             "comparison_mode": body.comparison_mode,
             "shim_used": body.shim_used,
             "runtime": request.environment.runtime,

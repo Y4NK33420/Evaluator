@@ -10,9 +10,14 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import SessionLocal
 from app.models import CodeEvalAttempt, CodeEvalJob, CodeEvalJobStatus
-from app.services.code_eval.contracts import CodeEvalJobRequest, CodeEvalJobResult
+from app.services.code_eval.contracts import AttemptResult, CodeEvalJobRequest, CodeEvalJobResult
 from app.services.code_eval.execution_service import execute_code_eval_job
-from app.services.code_eval.shim_service import analyze_for_retrying_shim
+from app.services.code_eval.quality_service import evaluate_code_quality
+from app.services.code_eval.shim_service import (
+    analyze_for_retrying_shim,
+    build_retry_request_from_shim_decision,
+)
+from app.services.code_eval.static_analysis import run_static_analysis_gate
 from app.services.code_eval.state_machine import CodeEvalJobState, validate_transition
 from app.workers.celery_app import celery_app
 
@@ -102,6 +107,60 @@ def run_code_eval_job_task(self, job_id: str):
 
         request = CodeEvalJobRequest.model_validate(job.request_json)
 
+        static_analysis = run_static_analysis_gate(request)
+        if bool(static_analysis.get("blocked")):
+            _transition(job, CodeEvalJobState.EXECUTING_RAW)
+            db.commit()
+
+            blocked_started_at = _now()
+            blocked_attempt_result = AttemptResult(
+                stage=CodeEvalJobState.EXECUTING_RAW.value,
+                passed=False,
+                exit_code=40,
+                stderr="Static analysis blocked execution due to forbidden patterns.",
+                score=0.0,
+            )
+            blocked_artifacts = {
+                "executor": "static_analysis_gate",
+                "comparison_mode": "strict",
+                "blocked": True,
+                "language": request.language.value,
+                "violations": static_analysis.get("violations") or [],
+            }
+            blocked_attempt_index = job.attempt_count + 1
+            _record_attempt(
+                db,
+                job,
+                attempt_index=blocked_attempt_index,
+                attempt_result=blocked_attempt_result,
+                execution_artifacts=blocked_artifacts,
+                started_at=blocked_started_at,
+            )
+            db.commit()
+
+            _transition(job, CodeEvalJobState.FINALIZING)
+            job.final_result_json = {
+                "job_id": job.id,
+                "submission_id": job.submission_id,
+                "status": "FAILED",
+                "attempts": [blocked_attempt_result.model_dump(mode="json")],
+                "attempt_artifacts": [
+                    {
+                        "attempt_index": blocked_attempt_index,
+                        "stage": blocked_attempt_result.stage,
+                        "shim_used": False,
+                        "executor": "static_analysis_gate",
+                        "comparison_mode": "strict",
+                    }
+                ],
+                "static_analysis": static_analysis,
+            }
+            job.error_message = blocked_attempt_result.stderr
+            _transition(job, CodeEvalJobState.FAILED)
+            db.commit()
+            log.info("Code-eval job %s blocked by static-analysis gate", job_id)
+            return
+
         _transition(job, CodeEvalJobState.EXECUTING_RAW)
         db.commit()
 
@@ -110,6 +169,7 @@ def run_code_eval_job_task(self, job_id: str):
             request,
             stage=CodeEvalJobState.EXECUTING_RAW.value,
         )
+        final_execution_artifacts = raw_execution_artifacts
         raw_attempt_index = job.attempt_count + 1
         _record_attempt(
             db,
@@ -144,9 +204,11 @@ def run_code_eval_job_task(self, job_id: str):
                 _transition(job, CodeEvalJobState.RETRYING_SHIM)
                 db.commit()
 
+                retry_request = build_retry_request_from_shim_decision(request, shim_decision)
+
                 retry_started_at = _now()
                 retry_attempt_result, retry_execution_artifacts = execute_code_eval_job(
-                    request,
+                    retry_request,
                     stage=CodeEvalJobState.RETRYING_SHIM.value,
                     comparison_mode=str(shim_decision.get("comparison_mode") or "strict"),
                     shim_used=True,
@@ -169,26 +231,39 @@ def run_code_eval_job_task(self, job_id: str):
                         "attempt_index": retry_attempt_index,
                         "stage": retry_attempt_result.stage,
                         "shim_used": retry_attempt_result.shim_used,
+                        "shim_strategy": shim_decision.get("shim_strategy"),
                         "executor": retry_execution_artifacts.get("executor"),
                         "comparison_mode": retry_execution_artifacts.get("comparison_mode", "strict"),
                     }
                 )
                 final_attempt_result = retry_attempt_result
+                final_execution_artifacts = retry_execution_artifacts
 
         _transition(job, CodeEvalJobState.FINALIZING)
 
         max_score = float(sum(test.weight for test in request.testcases))
         if final_attempt_result.passed:
+            final_score = final_attempt_result.score
+            quality_payload = evaluate_code_quality(
+                request,
+                earned_score=final_attempt_result.score,
+                max_score=max_score,
+                execution_artifacts=final_execution_artifacts,
+            )
+            if bool(quality_payload.get("applied")):
+                final_score = float(quality_payload.get("adjusted_total_score", final_score))
+
             final_result = CodeEvalJobResult(
                 job_id=job.id,
                 submission_id=job.submission_id,
-                total_score=final_attempt_result.score,
+                total_score=final_score,
                 max_score=max_score,
                 status="COMPLETED",
                 attempts=attempts_for_result,
             )
             final_payload = final_result.model_dump(mode="json")
             final_payload["attempt_artifacts"] = attempt_artifacts
+            final_payload["quality_evaluation"] = quality_payload
             if shim_decision is not None:
                 final_payload["shim_decision"] = shim_decision
             job.final_result_json = final_payload

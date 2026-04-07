@@ -5,7 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
+import subprocess
 from datetime import datetime, timezone
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -29,8 +32,89 @@ def _append_log(existing: str | None, line: str) -> str:
     return line
 
 
-def _validate_and_resolve_freeze_key(env: CodeEvalEnvironmentVersion) -> tuple[str, str]:
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        while True:
+            chunk = fh.read(1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _validate_existing_snapshot_artifacts(
+    env: CodeEvalEnvironmentVersion,
+    *,
+    vmstate_path: Path,
+    mem_path: Path,
+) -> tuple[str, str, dict]:
+    if not vmstate_path.exists():
+        raise ValueError(f"snapshot vmstate artifact does not exist: {vmstate_path}")
+    if not mem_path.exists():
+        raise ValueError(f"snapshot memory artifact does not exist: {mem_path}")
+
+    vmstate_sha = _sha256_file(vmstate_path)
+    mem_sha = _sha256_file(mem_path)
+    combined = hashlib.sha256(f"{vmstate_sha}:{mem_sha}".encode("utf-8")).hexdigest()[:16]
+    scope = env.assignment_id or "course"
+    freeze_key = (
+        f"firecracker/{env.course_id}/{scope}/{env.profile_key}:"
+        f"v{env.version_number}-{combined}"
+    )
+    detail = (
+        "Validated snapshot artifacts and computed freeze key "
+        f"(vmstate_sha256={vmstate_sha[:12]}..., mem_sha256={mem_sha[:12]}...)."
+    )
+    spec_updates = {
+        "snapshot_vmstate_path": str(vmstate_path),
+        "snapshot_mem_path": str(mem_path),
+        "snapshot_vmstate_sha256": vmstate_sha,
+        "snapshot_mem_sha256": mem_sha,
+    }
+    return freeze_key, detail, spec_updates
+
+
+def _build_snapshot_with_script(env: CodeEvalEnvironmentVersion) -> tuple[Path, Path, str]:
+    script_raw = str((env.spec_json or {}).get("snapshot_build_script") or "").strip()
+    script_path = Path(script_raw or settings.code_eval_microvm_env_build_script).resolve()
+    if not script_path.exists():
+        raise ValueError(f"Snapshot build script not found: {script_path}")
+
+    snapshot_dir = Path(
+        str((env.spec_json or {}).get("snapshot_dir") or settings.code_eval_microvm_env_build_snapshot_dir)
+    ).resolve()
+    snapshot_dir.mkdir(parents=True, exist_ok=True)
+
+    name_prefix = str(settings.code_eval_microvm_env_build_snapshot_name_prefix or "codeeval").strip()
+    snapshot_name = f"{name_prefix}-{env.id[:8]}-v{env.version_number}"
+    vmstate = snapshot_dir / f"{snapshot_name}.vmstate"
+    mem = snapshot_dir / f"{snapshot_name}.mem"
+
+    env_vars = os.environ.copy()
+    env_vars["SNAPSHOT_DIR"] = str(snapshot_dir)
+    env_vars["SNAPSHOT_NAME"] = snapshot_name
+
+    completed = subprocess.run(
+        [str(script_path)],
+        env=env_vars,
+        text=True,
+        capture_output=True,
+        timeout=1800,
+        check=False,
+    )
+    if completed.returncode != 0:
+        stderr = (completed.stderr or completed.stdout or "").strip()
+        raise RuntimeError(
+            f"Snapshot build script failed (exit={completed.returncode}): {stderr[:2000]}"
+        )
+
+    return vmstate, mem, f"Snapshot build script completed via {script_path}"
+
+
+def _validate_and_resolve_freeze_key(env: CodeEvalEnvironmentVersion) -> tuple[str, str, dict]:
     mode = str((env.spec_json or {}).get("mode") or "manifest").strip().lower()
+    strategy = settings.code_eval_microvm_env_build_strategy.strip().lower()
 
     if mode == "image_reference":
         image_reference = str((env.spec_json or {}).get("image_reference") or "").strip()
@@ -44,7 +128,29 @@ def _validate_and_resolve_freeze_key(env: CodeEvalEnvironmentVersion) -> tuple[s
             client.ping()
             client.images.pull(image_reference)
 
-        return image_reference, f"Validated image reference mode using image={image_reference}"
+        return image_reference, f"Validated image reference mode using image={image_reference}", {}
+
+    if mode in {"manifest", "lockfile"} and strategy == "firecracker_snapshot":
+        vmstate, mem, detail = _build_snapshot_with_script(env)
+        freeze_key, freeze_detail, spec_updates = _validate_existing_snapshot_artifacts(
+            env,
+            vmstate_path=vmstate,
+            mem_path=mem,
+        )
+        return freeze_key, f"{detail}. {freeze_detail}", spec_updates
+
+    if mode in {"manifest", "lockfile"} and strategy == "snapshot_validate":
+        vmstate_raw = str((env.spec_json or {}).get("snapshot_vmstate_path") or "").strip()
+        mem_raw = str((env.spec_json or {}).get("snapshot_mem_path") or "").strip()
+        if not vmstate_raw or not mem_raw:
+            raise ValueError(
+                "snapshot_validate strategy requires spec_json.snapshot_vmstate_path and spec_json.snapshot_mem_path"
+            )
+        return _validate_existing_snapshot_artifacts(
+            env,
+            vmstate_path=Path(vmstate_raw).resolve(),
+            mem_path=Path(mem_raw).resolve(),
+        )
 
     if mode in {"manifest", "lockfile"}:
         canonical = {
@@ -58,7 +164,11 @@ def _validate_and_resolve_freeze_key(env: CodeEvalEnvironmentVersion) -> tuple[s
         digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
         scope = env.assignment_id or "course"
         freeze_key = f"codeeval/{env.course_id}/{scope}/{env.profile_key}:v{env.version_number}-{digest}"
-        return freeze_key, f"Computed deterministic freeze key for mode={mode}: {freeze_key}"
+        detail = (
+            "Computed deterministic freeze key "
+            f"for mode={mode} strategy={strategy}: {freeze_key}"
+        )
+        return freeze_key, detail, {}
 
     raise ValueError(f"Unsupported environment spec mode: {mode}")
 
@@ -91,9 +201,13 @@ def run_code_eval_environment_build_task(
             env.freeze_key = None
         db.commit()
 
-        freeze_key, detail = _validate_and_resolve_freeze_key(env)
+        freeze_key, detail, spec_updates = _validate_and_resolve_freeze_key(env)
 
         env.freeze_key = freeze_key
+        if spec_updates:
+            spec_json = dict(env.spec_json or {})
+            spec_json.update(spec_updates)
+            env.spec_json = spec_json
         env.status = CodeEvalEnvironmentStatus.ready
         env.build_logs = _append_log(env.build_logs, f"[{_now_iso()}] {detail}")
         env.build_logs = _append_log(env.build_logs, f"[{_now_iso()}] Build completed successfully.")

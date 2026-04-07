@@ -26,6 +26,15 @@ This folder contains deployment assets for real code-eval execution on Linux/KVM
 - Guest image corresponding to snapshot must run the guest-agent at boot:
   - `python /opt/codeeval/agent.py`
 
+Quick preflight check (recommended before bring-up):
+
+```bash
+./microvm/scripts/linux_host_preflight.sh
+```
+
+If you are developing on Windows and deploying Firecracker later on Linux, follow:
+- `microvm/LINUX_DEPLOYMENT_GUIDE.md`
+
 ## Bring-up (Linux host)
 
 ### Step 1: Prepare guest rootfs with agent
@@ -102,3 +111,11 @@ This script creates assignment/env/submission/job and waits for terminal state.
   - `kvm_unavailable`
   - `snapshot_vmstate_missing`
 - Keep fallback disabled (`CODE_EVAL_MICROVM_ALLOW_FALLBACK=false`) when validating real Firecracker path.
+- Runtime now enforces network isolation when `CODE_EVAL_MICROVM_FORCE_NO_NETWORK=true`.
+- Firecracker runs use a serial lock file (`CODE_EVAL_MICROVM_SERIAL_LOCK_FILE`) to avoid shared vsock fallback collisions on legacy API paths.
+
+## Windows now, Linux later
+
+- Keep default compose mode on Windows (local or docker backend).
+- Do not force `firecracker_vsock` on Windows Docker Desktop hosts.
+- Validate Firecracker runtime only on Linux/KVM hosts using the Linux preflight script and e2e runners above.

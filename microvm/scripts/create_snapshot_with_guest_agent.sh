@@ -18,6 +18,7 @@ GUEST_CID="${GUEST_CID:-3}"
 VSOCK_PORT="${VSOCK_PORT:-7000}"
 BOOT_WAIT_SECONDS="${BOOT_WAIT_SECONDS:-12}"
 SKIP_GUEST_PROBE="${SKIP_GUEST_PROBE:-false}"
+ROOTFS_READ_ONLY="${ROOTFS_READ_ONLY:-true}"
 
 API_SOCK="/tmp/firecracker-snap-${SNAPSHOT_NAME}.sock"
 VSOCK_UDS="/tmp/firecracker-snap-${SNAPSHOT_NAME}.vsock"
@@ -115,7 +116,7 @@ wait_for_socket "${API_SOCK}" 8
 
 fc_req PUT /machine-config "{\"vcpu_count\": ${VCPU_COUNT}, \"mem_size_mib\": ${MEMORY_MIB}, \"smt\": false}"
 fc_req PUT /boot-source "{\"kernel_image_path\": \"${KERNEL_IMAGE}\", \"boot_args\": \"console=ttyS0 reboot=k panic=1 pci=off root=/dev/vda rw\"}"
-fc_req PUT /drives/rootfs "{\"drive_id\":\"rootfs\",\"path_on_host\":\"${ROOTFS_IMAGE}\",\"is_root_device\":true,\"is_read_only\":false}"
+fc_req PUT /drives/rootfs "{\"drive_id\":\"rootfs\",\"path_on_host\":\"${ROOTFS_IMAGE}\",\"is_root_device\":true,\"is_read_only\":${ROOTFS_READ_ONLY}}"
 fc_req PUT /vsock "{\"vsock_id\":\"vsock0\",\"guest_cid\":${GUEST_CID},\"uds_path\":\"${VSOCK_UDS}\"}"
 fc_req PUT /actions "{\"action_type\":\"InstanceStart\"}"
 

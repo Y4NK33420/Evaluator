@@ -1,6 +1,6 @@
 # Implementation Progress
 
-Date: 2026-04-07
+Date: 2026-04-08
 
 This document consolidates implementation progress across the full workstream so far (not only the most recent debugging cycles). It is based on the PRD, the plan iteration history, and all code and runtime validation work completed in this repository.
 
@@ -47,6 +47,23 @@ Practice:
   - `docker-compose.microvm.yml`
   - `microvm/README.md`
   - scripted host preflight check (`logs/code_eval_firecracker_preflight.ps1`)
+
+### 2026-04-08
+
+- Added automated code-eval regression tests under `backend/tests/code_eval/` for:
+  - static-analysis gate behavior,
+  - shim retry decision logic (deterministic and mocked AI patch path),
+  - quality scoring lane (weighted scoring + model-unavailable fallback),
+  - polyglot local command resolution (Python/C/C++/Java).
+- Executed test suite and validated all new tests passing (`11 passed`).
+- Re-ran API smoke validations for policy/build flows:
+  - static analysis gate end-to-end (`logs/validate_api_static_gate.ps1`),
+  - environment build/publish readiness (`logs/validate_env_build_api.ps1`).
+- Re-ran Firecracker preflight in forced microVM mode and confirmed host-level blocker remains on Windows Docker Desktop (`firecracker_binary_exists`, `snapshot_*_configured`, `kvm_available` unmet in runtime preflight).
+- Added Windows-now/Linux-later deployment handoff docs and tooling:
+  - `microvm/LINUX_DEPLOYMENT_GUIDE.md`
+  - `microvm/scripts/linux_host_preflight.sh`
+  - updated `microvm/README.md` with preflight + transition guidance.
 
 ### 2026-04-06
 
@@ -246,7 +263,19 @@ Infra/config:
 - `backend/Dockerfile.microvm`
 - `docker-compose.microvm.yml`
 - `microvm/README.md`
+- `microvm/LINUX_DEPLOYMENT_GUIDE.md`
+- `microvm/scripts/linux_host_preflight.sh`
 - `logs/code_eval_firecracker_preflight.ps1`
+
+Code-eval safety/quality services and tests:
+- `backend/app/services/code_eval/static_analysis.py`
+- `backend/app/services/code_eval/quality_service.py`
+- `backend/tests/code_eval/test_static_analysis.py`
+- `backend/tests/code_eval/test_shim_service.py`
+- `backend/tests/code_eval/test_quality_service.py`
+- `backend/tests/code_eval/test_execution_polyglot_commands.py`
+- `logs/validate_api_static_gate.ps1`
+- `logs/validate_env_build_api.ps1`
 
 Validation artifacts/logging:
 - `logs/manual_scenarios_raw_2026-04-06.txt`
@@ -259,6 +288,7 @@ Validation artifacts/logging:
 - `logs/code_eval_runtime_bridge_compose_smoke_2026-04-07.txt`
 - `logs/code_eval_firecracker_vsock_validation_2026-04-07.txt`
 - `logs/code_eval_firecracker_preflight_2026-04-07.txt`
+- `logs/code_eval_firecracker_preflight_2026-04-08.txt`
 - Repository memory notes in `/memories/repo/` capture durable lessons.
 
 ## 5) Manual Validation Summary (High-Value Results)
@@ -336,10 +366,10 @@ Done now:
   - post-build publish validation passes and job creation succeeds.
 
 Next recommended steps:
-1. Add automated regression tests that mirror the validated manual scenarios (aligned, mismatch, unapproved-rubric, duplicate-upload, OCR-correction-regrade).
-2. Expand objective-flow validation corpus and calibrate confidence/flag thresholds.
-3. Extend microVM adapter boundary into real snapshot/vsock execution runtime.
-4. Extend deterministic shim retry into model-assisted shim synthesis with explicit policy/audit controls.
+1. Keep daily dev validation on Windows in default backend mode (`local`/`docker`) and avoid forcing `firecracker_vsock` on Docker Desktop hosts.
+2. Add/maintain Linux KVM staging validation lane using `microvm/scripts/linux_host_preflight.sh` + `microvm/scripts/firecracker_smoke.sh` before release.
+3. Expand objective-flow validation corpus and calibrate confidence/flag thresholds.
+4. Extend deterministic shim retry into model-assisted shim synthesis with explicit policy/audit controls and live success-path validation.
 5. Add a lightweight operations runbook (startup order, health checks, common failure signatures, recovery commands).
 
 ## 8) Operational Notes for Future Sessions

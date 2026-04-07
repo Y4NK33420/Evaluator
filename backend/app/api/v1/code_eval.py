@@ -193,8 +193,11 @@ def code_eval_runtime_status():
     return CodeEvalRuntimeStatusOut(
         execution_backend=backend,
         shim_retry_enabled=settings.code_eval_enable_shim_retry,
+        ai_shim_generation_enabled=settings.code_eval_enable_ai_shim_generation,
         microvm={
             "enabled": settings.code_eval_microvm_enable_adapter,
+            "force_no_network": settings.code_eval_microvm_force_no_network,
+            "serial_lock_file": settings.code_eval_microvm_serial_lock_file,
             "runtime_mode": runtime_mode,
             "allow_fallback": settings.code_eval_microvm_allow_fallback,
             "fallback_backend": settings.code_eval_microvm_fallback_backend,
@@ -202,6 +205,7 @@ def code_eval_runtime_status():
                 settings.code_eval_microvm_runtime_bridge_url.strip()
             ),
             "runtime_bridge_timeout_seconds": settings.code_eval_microvm_runtime_bridge_timeout_seconds,
+            "environment_build_strategy": settings.code_eval_microvm_env_build_strategy,
             "firecracker_snapshot_configured": bool(
                 settings.code_eval_microvm_snapshot_vmstate_path.strip()
                 and settings.code_eval_microvm_snapshot_mem_path.strip()
@@ -429,7 +433,7 @@ def create_job(body: CodeEvalJobCreate, db: Session = Depends(get_db)):
             detail="environment_version_id is required for phase-1 persisted execution.",
         )
 
-    request = body.request
+    request = body.request.model_copy(deep=True)
     if "quality_evaluation" not in request.model_fields_set:
         raise HTTPException(
             status_code=422,
@@ -467,6 +471,27 @@ def create_job(body: CodeEvalJobCreate, db: Session = Depends(get_db)):
             status_code=409,
             detail="Environment version has no freeze_key. Run environment build before job creation.",
         )
+
+    # Bind immutable environment artifacts from the selected version into the
+    # runtime request so worker execution always uses the published freeze.
+    request.environment.freeze_key = env_version.freeze_key
+    spec_json = env_version.spec_json if isinstance(env_version.spec_json, dict) else {}
+    if not request.environment.image_reference:
+        image_reference = str(spec_json.get("image_reference") or "").strip()
+        if image_reference:
+            request.environment.image_reference = image_reference
+    snapshot_vmstate = str(spec_json.get("snapshot_vmstate_path") or "").strip()
+    snapshot_mem = str(spec_json.get("snapshot_mem_path") or "").strip()
+    if snapshot_vmstate:
+        request.environment.snapshot_vmstate_path = snapshot_vmstate
+    if snapshot_mem:
+        request.environment.snapshot_mem_path = snapshot_mem
+    snapshot_vmstate_sha = str(spec_json.get("snapshot_vmstate_sha256") or "").strip()
+    snapshot_mem_sha = str(spec_json.get("snapshot_mem_sha256") or "").strip()
+    if snapshot_vmstate_sha:
+        request.environment.snapshot_vmstate_sha256 = snapshot_vmstate_sha
+    if snapshot_mem_sha:
+        request.environment.snapshot_mem_sha256 = snapshot_mem_sha
 
     _validate_microvm_pilot_policy(env_version)
     _validate_microvm_pilot_docker_image_preflight(env_version, request)
