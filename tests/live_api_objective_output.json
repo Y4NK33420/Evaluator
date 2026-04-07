@@ -1,0 +1,262 @@
+{
+  "mode": "objective",
+  "assignment": {
+    "id": "debc4cba-3380-461d-955f-d4ecd33e5865",
+    "course_id": "ENG101",
+    "classroom_id": null,
+    "title": "Live Objective Mode",
+    "description": "Objective-mode live run",
+    "deadline": null,
+    "max_marks": 10.0,
+    "question_type": "objective",
+    "has_code_question": false,
+    "created_at": "2026-04-04T23:36:12.178031"
+  },
+  "rubric": {
+    "id": "6de2ad28-29dd-40f8-87a9-5c46b90f93bb",
+    "assignment_id": "debc4cba-3380-461d-955f-d4ecd33e5865",
+    "content_json": {
+      "questions": [
+        {
+          "id": "Q1",
+          "description": "Interpretive response",
+          "max_marks": 4.0,
+          "criteria": [
+            {
+              "step": "Key interpretation identified",
+              "marks": 4.0,
+              "partial_credit": true
+            }
+          ]
+        },
+        {
+          "id": "Q2",
+          "description": "Numeric parts a, b, c",
+          "max_marks": 3.0,
+          "criteria": [
+            {
+              "step": "Q2.a",
+              "marks": 1.0,
+              "partial_credit": false
+            },
+            {
+              "step": "Q2.b",
+              "marks": 1.0,
+              "partial_credit": false
+            },
+            {
+              "step": "Q2.c",
+              "marks": 1.0,
+              "partial_credit": false
+            }
+          ]
+        },
+        {
+          "id": "Q3",
+          "description": "Inference response",
+          "max_marks": 3.0,
+          "criteria": [
+            {
+              "step": "Main inference",
+              "marks": 3.0,
+              "partial_credit": true
+            }
+          ]
+        }
+      ]
+    },
+    "source": "manual",
+    "approved": true,
+    "approved_by": null,
+    "created_at": "2026-04-04T23:36:12.390305"
+  },
+  "upload": {
+    "job_id": "1e9beab7-b893-4938-b0dc-6a4c14f31660",
+    "submission_id": "1e9beab7-b893-4938-b0dc-6a4c14f31660",
+    "status": "enqueued"
+  },
+  "submission": {
+    "id": "1e9beab7-b893-4938-b0dc-6a4c14f31660",
+    "assignment_id": "debc4cba-3380-461d-955f-d4ecd33e5865",
+    "student_id": "stu-objective",
+    "student_name": "Student objective",
+    "status": "graded",
+    "ocr_result": {
+      "blocks": [
+        {
+          "index": 0,
+          "label": "text",
+          "content": "The answer for the given question lies in how the writer wants the readers to understand the essence of time.",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "1"
+        },
+        {
+          "index": 1,
+          "label": "text",
+          "content": "4.6",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "2.a"
+        },
+        {
+          "index": 2,
+          "label": "text",
+          "content": "3.33",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "2.b"
+        },
+        {
+          "index": 3,
+          "label": "text",
+          "content": "8883300",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "2.c"
+        },
+        {
+          "index": 4,
+          "label": "text",
+          "content": "The flower blooms because of sudden sunshine as it lays flat on the grass.",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "3"
+        }
+      ],
+      "block_count": 5,
+      "flagged_count": 0,
+      "engine": "gemini",
+      "raw_text": "{\"1\": \"The answer for the given question lies in how the writer wants the readers to understand the essence of time.\", \"2\": {\"a\": \"4.6\", \"b\": \"3.33\", \"c\": \"8883300\"}, \"3\": \"The flower blooms because of sudden sunshine as it lays flat on the grass.\"}",
+      "model": "gemini-3.1-flash-lite-preview",
+      "objective_regions": [
+        {
+          "index": 0,
+          "label": "text",
+          "content": "The answer for the given question lies in how the writer wants the readers to understand the essence of time.",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "1"
+        },
+        {
+          "index": 1,
+          "label": "text",
+          "content": "4.6",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "2.a"
+        },
+        {
+          "index": 2,
+          "label": "text",
+          "content": "3.33",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "2.b"
+        },
+        {
+          "index": 3,
+          "label": "text",
+          "content": "8883300",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "2.c"
+        },
+        {
+          "index": 4,
+          "label": "text",
+          "content": "The flower blooms because of sudden sunshine as it lays flat on the grass.",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "3"
+        }
+      ],
+      "objective_region_count": 5,
+      "objective_flagged_count": 0
+    },
+    "ocr_engine": "gemini+glm_meta",
+    "error_message": null,
+    "created_at": "2026-04-04T23:36:12.615367",
+    "updated_at": "2026-04-04T23:36:29.581503"
+  },
+  "grade": {
+    "id": "1be698c2-1531-4df2-8a5f-2ac133a761e2",
+    "submission_id": "1e9beab7-b893-4938-b0dc-6a4c14f31660",
+    "active_version": true,
+    "total_score": 6.0,
+    "breakdown_json": {
+      "total_score": 6.0,
+      "is_truncated": false,
+      "score_details": {
+        "granularity": "question_level",
+        "question_scores": [
+          {
+            "question_id": "Q1",
+            "marks_awarded": 2.0,
+            "max_marks": 4.0,
+            "feedback": "The answer is vague and lacks specific interpretive depth regarding the text's themes."
+          },
+          {
+            "question_id": "Q2",
+            "marks_awarded": 1.0,
+            "max_marks": 3.0,
+            "feedback": "Only part 2.c is correct based on standard answer keys for this problem set."
+          },
+          {
+            "question_id": "Q3",
+            "marks_awarded": 3.0,
+            "max_marks": 3.0,
+            "feedback": "The inference is well-reasoned and aligns with the expected answer."
+          }
+        ]
+      },
+      "breakdown": {
+        "Q1": {
+          "marks_awarded": 2.0,
+          "max_marks": 4.0,
+          "feedback": "The answer is vague and lacks specific interpretive depth regarding the text's themes.",
+          "is_truncated": false
+        },
+        "Q2": {
+          "marks_awarded": 1.0,
+          "max_marks": 3.0,
+          "feedback": "Only part 2.c is correct based on standard answer keys for this problem set.",
+          "is_truncated": false
+        },
+        "Q3": {
+          "marks_awarded": 3.0,
+          "max_marks": 3.0,
+          "feedback": "The inference is well-reasoned and aligns with the expected answer.",
+          "is_truncated": false
+        }
+      },
+      "assignment_id": "debc4cba-3380-461d-955f-d4ecd33e5865",
+      "ocr_engine": "gemini",
+      "model": "gemini-3.1-flash-lite-preview",
+      "scoring_mode": "question_level",
+      "scoring_config": {
+        "mode": "question_level",
+        "coding_weights": null,
+        "directive": "Use question-level scoring only. In score_details return: {\"granularity\": \"question_level\", \"question_scores\": [{\"question_id\": \"Q1\", \"marks_awarded\": <float>, \"max_marks\": <float>, \"feedback\": \"...\"}]}. Do not use rubric_step_scores or testcase-level entries."
+      }
+    },
+    "source": "AI_Generated",
+    "classroom_status": "not_synced",
+    "is_truncated": false,
+    "graded_at": "2026-04-04T23:36:29.589008"
+  },
+  "grade_status_code": 200,
+  "audit_actions": [
+    "ai_grade"
+  ]
+}

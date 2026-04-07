@@ -1,0 +1,30 @@
+# glmocr SDK configuration for local vLLM backend
+# Used by: tests/ocr_sdk_test.py
+# Server: start with tests/start_vllm_server.ps1 (Docker)
+
+pipeline:
+  maas:
+    enabled: false  # Use local vLLM, not cloud
+
+  ocr_api:
+    api_host: localhost
+    api_port: 8080
+    api_key: null
+    connect_timeout: 300
+    request_timeout: 300
+
+  page_loader:
+    max_tokens: 4096
+    temperature: 0.01
+    image_format: JPEG
+    min_pixels: 12544
+    max_pixels: 71372800
+
+  result_formatter:
+    output_format: both  # json + markdown
+
+  # Layout detection on CPU so GPU VRAM is fully reserved for OCR model
+  enable_layout: true
+
+layout:
+  device: cpu

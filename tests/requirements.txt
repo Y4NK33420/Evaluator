@@ -1,0 +1,14 @@
+# GLM-OCR Test Requirements
+# Install with: uv pip install -r tests/requirements.txt
+
+# HuggingFace stack — need transformers from git for GLM-OCR support
+transformers @ git+https://github.com/huggingface/transformers.git
+accelerate>=0.30.0
+Pillow>=10.0.0
+torch>=2.2.0           # install separately via index below for CUDA support
+
+# 4-bit quantization (BitsAndBytes — Windows-compatible wheel)
+bitsandbytes>=0.43.0
+
+# Utilities
+numpy

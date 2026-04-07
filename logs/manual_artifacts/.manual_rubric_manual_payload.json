@@ -1,0 +1,1 @@
+{"content_json":{"questions":[{"id":"Q1","description":"Explain cache locality and execution trade-offs","max_marks":20,"criteria":[{"step":"Correct cache locality explanation","marks":10,"partial_credit":true},{"step":"Correct eager vs graph/cudagraph trade-off","marks":10,"partial_credit":true}]}]},"source":"manual"}

@@ -1,0 +1,45 @@
+FROM python:3.11-slim
+
+ARG FIRECRACKER_VERSION=v1.8.0
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libpq-dev \
+        tesseract-ocr \
+        libgl1 \
+        libglib2.0-0 \
+        ca-certificates \
+        curl \
+        tar \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Firecracker binary in-worker so the code-eval microVM runtime can launch VMs.
+RUN set -eux; \
+    arch="$(uname -m)"; \
+    case "$arch" in \
+      x86_64) fc_arch="x86_64" ;; \
+      aarch64) fc_arch="aarch64" ;; \
+      *) echo "Unsupported architecture: $arch"; exit 1 ;; \
+    esac; \
+    url="https://github.com/firecracker-microvm/firecracker/releases/download/${FIRECRACKER_VERSION}/firecracker-${FIRECRACKER_VERSION}-${fc_arch}.tgz"; \
+    curl -fsSL "$url" -o /tmp/firecracker.tgz; \
+    tar -xzf /tmp/firecracker.tgz -C /tmp; \
+    find /tmp -type f -name "firecracker-${FIRECRACKER_VERSION}-${fc_arch}" -exec cp {} /usr/local/bin/firecracker \;; \
+    chmod +x /usr/local/bin/firecracker; \
+    rm -rf /tmp/firecracker.tgz /tmp/release-*
+
+WORKDIR /app
+
+COPY backend/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+COPY backend/app /app/app
+COPY backend/alembic.ini /app/alembic.ini
+COPY backend/alembic     /app/alembic
+
+ENV PYTHONPATH=/app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+EXPOSE 8080
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "2"]

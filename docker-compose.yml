@@ -1,0 +1,379 @@
+# docker-compose.yml
+# ═══════════════════════════════════════════════════════════════════════════════
+# Full AMGS stack:
+#   postgres      PostgreSQL 16          (port 5432)
+#   redis         Redis 7                (port 6379)
+#   backend       FastAPI + Celery       (port 8080)
+#   vllm-server   GLM-OCR via vLLM GPU  (port 8082)
+#   ocr-service   OCR FastAPI service    (port 8000)
+#
+# Usage:
+#   cp .env.example .env   # add GOOGLE_CLOUD_API_KEY + model vars
+#   docker compose up -d
+# ═══════════════════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: amgs-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER:     amgs
+      POSTGRES_PASSWORD: amgs
+      POSTGRES_DB:       amgs
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U amgs"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: amgs-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend (FastAPI) ────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: amgs-backend:latest
+    container_name: amgs-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - uploads:/data/uploads
+      - ./backend/app/services/credentials.json:/app/app/services/credentials.json:ro
+      - ./backend/app/services/token.json:/app/app/services/token.json
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://amgs:amgs@postgres:5432/amgs
+      - REDIS_URL=redis://redis:6379/0
+      - OCR_SERVICE_URL=http://ocr-service:8000
+      - GOOGLE_CLOUD_API_KEY=${AMGS_GOOGLE_CLOUD_API_KEY:-${GOOGLE_CLOUD_API_KEY:-}}
+      - GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI:-true}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+      - DEFAULT_MODEL=${AMGS_DEFAULT_MODEL:-${DEFAULT_MODEL:-gemini-2.5-flash}}
+      - SUBJECTIVE_OCR_MODEL=${SUBJECTIVE_OCR_MODEL:-}
+      - OBJECTIVE_OCR_MODEL=${OBJECTIVE_OCR_MODEL:-}
+      - SUBJECTIVE_GRADING_MODEL=${SUBJECTIVE_GRADING_MODEL:-}
+      - OBJECTIVE_GRADING_MODEL=${OBJECTIVE_GRADING_MODEL:-}
+      - RUBRICS_GENERATION_MODEL=${RUBRICS_GENERATION_MODEL:-}
+      - CODE_HEALING_MODEL=${CODE_HEALING_MODEL:-}
+      - MODEL_TRANSIENT_MAX_RETRIES=${MODEL_TRANSIENT_MAX_RETRIES:-3}
+      - MODEL_RETRY_INITIAL_BACKOFF_SECONDS=${MODEL_RETRY_INITIAL_BACKOFF_SECONDS:-1.5}
+      - MODEL_RETRY_MAX_BACKOFF_SECONDS=${MODEL_RETRY_MAX_BACKOFF_SECONDS:-12}
+      - UPLOADS_DIR=/data/uploads
+      - CODE_EVAL_ENABLE_LOCAL_EXECUTION=${CODE_EVAL_ENABLE_LOCAL_EXECUTION:-true}
+      - CODE_EVAL_EXECUTION_BACKEND=${CODE_EVAL_EXECUTION_BACKEND:-local}
+      - CODE_EVAL_DOCKER_DEFAULT_IMAGE=${CODE_EVAL_DOCKER_DEFAULT_IMAGE:-python:3.11-slim}
+      - CODE_EVAL_DOCKER_FORCE_NO_NETWORK=${CODE_EVAL_DOCKER_FORCE_NO_NETWORK:-true}
+      - CODE_EVAL_DOCKER_AUTO_PULL=${CODE_EVAL_DOCKER_AUTO_PULL:-true}
+      - CODE_EVAL_MICROVM_ENABLE_ADAPTER=${CODE_EVAL_MICROVM_ENABLE_ADAPTER:-false}
+      - CODE_EVAL_MICROVM_RUNTIME_MODE=${CODE_EVAL_MICROVM_RUNTIME_MODE:-pending}
+      - CODE_EVAL_MICROVM_ALLOW_FALLBACK=${CODE_EVAL_MICROVM_ALLOW_FALLBACK:-true}
+      - CODE_EVAL_MICROVM_FALLBACK_BACKEND=${CODE_EVAL_MICROVM_FALLBACK_BACKEND:-docker}
+      - CODE_EVAL_MICROVM_RUNTIME_BRIDGE_URL=${CODE_EVAL_MICROVM_RUNTIME_BRIDGE_URL:-}
+      - CODE_EVAL_MICROVM_RUNTIME_BRIDGE_API_KEY=${CODE_EVAL_MICROVM_RUNTIME_BRIDGE_API_KEY:-}
+      - CODE_EVAL_MICROVM_RUNTIME_BRIDGE_TIMEOUT_SECONDS=${CODE_EVAL_MICROVM_RUNTIME_BRIDGE_TIMEOUT_SECONDS:-30}
+      - CODE_EVAL_MICROVM_RUNTIME_BRIDGE_VERIFY_TLS=${CODE_EVAL_MICROVM_RUNTIME_BRIDGE_VERIFY_TLS:-true}
+      - CODE_EVAL_MICROVM_FIRECRACKER_BIN=${CODE_EVAL_MICROVM_FIRECRACKER_BIN:-/usr/local/bin/firecracker}
+      - CODE_EVAL_MICROVM_SNAPSHOT_VMSTATE_PATH=${CODE_EVAL_MICROVM_SNAPSHOT_VMSTATE_PATH:-}
+      - CODE_EVAL_MICROVM_SNAPSHOT_MEM_PATH=${CODE_EVAL_MICROVM_SNAPSHOT_MEM_PATH:-}
+      - CODE_EVAL_MICROVM_API_SOCKET_DIR=${CODE_EVAL_MICROVM_API_SOCKET_DIR:-/tmp/codeeval-firecracker/sockets}
+      - CODE_EVAL_MICROVM_RUNTIME_WORKDIR=${CODE_EVAL_MICROVM_RUNTIME_WORKDIR:-/tmp/codeeval-firecracker/runs}
+      - CODE_EVAL_MICROVM_FIRECRACKER_API_TIMEOUT_SECONDS=${CODE_EVAL_MICROVM_FIRECRACKER_API_TIMEOUT_SECONDS:-5}
+      - CODE_EVAL_MICROVM_VSOCK_GUEST_CID=${CODE_EVAL_MICROVM_VSOCK_GUEST_CID:-3}
+      - CODE_EVAL_MICROVM_VSOCK_PORT=${CODE_EVAL_MICROVM_VSOCK_PORT:-7000}
+      - CODE_EVAL_MICROVM_VSOCK_UDS_PATH=${CODE_EVAL_MICROVM_VSOCK_UDS_PATH:-/tmp/firecracker-snap-python311.vsock}
+      - CODE_EVAL_MICROVM_VSOCK_CONNECT_TIMEOUT_SECONDS=${CODE_EVAL_MICROVM_VSOCK_CONNECT_TIMEOUT_SECONDS:-5}
+      - CODE_EVAL_ENABLE_SHIM_RETRY=${CODE_EVAL_ENABLE_SHIM_RETRY:-true}
+      - DEBUG=${DEBUG:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=5).read()\"",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Celery OCR Worker (sequential, GPU-safe) ──────────────────────────────────
+  worker-ocr:
+    image: amgs-backend:latest
+    container_name: amgs-worker-ocr
+    restart: unless-stopped
+    command: >
+      celery -A app.workers.celery_app worker
+        -Q ocr_queue -c 1 --loglevel=info
+    volumes:
+      - uploads:/data/uploads
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://amgs:amgs@postgres:5432/amgs
+      - REDIS_URL=redis://redis:6379/0
+      - OCR_SERVICE_URL=http://ocr-service:8000
+      - GOOGLE_CLOUD_API_KEY=${AMGS_GOOGLE_CLOUD_API_KEY:-${GOOGLE_CLOUD_API_KEY:-}}
+      - GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI:-true}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+      - DEFAULT_MODEL=${AMGS_DEFAULT_MODEL:-${DEFAULT_MODEL:-gemini-2.5-flash}}
+      - SUBJECTIVE_OCR_MODEL=${SUBJECTIVE_OCR_MODEL:-}
+      - OBJECTIVE_OCR_MODEL=${OBJECTIVE_OCR_MODEL:-}
+      - SUBJECTIVE_GRADING_MODEL=${SUBJECTIVE_GRADING_MODEL:-}
+      - OBJECTIVE_GRADING_MODEL=${OBJECTIVE_GRADING_MODEL:-}
+      - RUBRICS_GENERATION_MODEL=${RUBRICS_GENERATION_MODEL:-}
+      - CODE_HEALING_MODEL=${CODE_HEALING_MODEL:-}
+      - MODEL_TRANSIENT_MAX_RETRIES=${MODEL_TRANSIENT_MAX_RETRIES:-3}
+      - MODEL_RETRY_INITIAL_BACKOFF_SECONDS=${MODEL_RETRY_INITIAL_BACKOFF_SECONDS:-1.5}
+      - MODEL_RETRY_MAX_BACKOFF_SECONDS=${MODEL_RETRY_MAX_BACKOFF_SECONDS:-12}
+      - UPLOADS_DIR=/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── Celery Grading Worker (concurrent, Gemini I/O-bound) ─────────────────────
+  worker-grading:
+    image: amgs-backend:latest
+    container_name: amgs-worker-grading
+    restart: unless-stopped
+    command: >
+      celery -A app.workers.celery_app worker
+        -Q grading_queue -c 8 --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://amgs:amgs@postgres:5432/amgs
+      - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_CLOUD_API_KEY=${AMGS_GOOGLE_CLOUD_API_KEY:-${GOOGLE_CLOUD_API_KEY:-}}
+      - GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI:-true}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+      - DEFAULT_MODEL=${AMGS_DEFAULT_MODEL:-${DEFAULT_MODEL:-gemini-2.5-flash}}
+      - SUBJECTIVE_OCR_MODEL=${SUBJECTIVE_OCR_MODEL:-}
+      - OBJECTIVE_OCR_MODEL=${OBJECTIVE_OCR_MODEL:-}
+      - SUBJECTIVE_GRADING_MODEL=${SUBJECTIVE_GRADING_MODEL:-}
+      - OBJECTIVE_GRADING_MODEL=${OBJECTIVE_GRADING_MODEL:-}
+      - RUBRICS_GENERATION_MODEL=${RUBRICS_GENERATION_MODEL:-}
+      - CODE_HEALING_MODEL=${CODE_HEALING_MODEL:-}
+      - MODEL_TRANSIENT_MAX_RETRIES=${MODEL_TRANSIENT_MAX_RETRIES:-3}
+      - MODEL_RETRY_INITIAL_BACKOFF_SECONDS=${MODEL_RETRY_INITIAL_BACKOFF_SECONDS:-1.5}
+      - MODEL_RETRY_MAX_BACKOFF_SECONDS=${MODEL_RETRY_MAX_BACKOFF_SECONDS:-12}
+      - UPLOADS_DIR=/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── Celery Code-Eval Worker (execution lifecycle lane) ─────────────────────
+  worker-code-eval:
+    image: amgs-backend:latest
+    container_name: amgs-worker-code-eval
+    restart: unless-stopped
+    command: >
+      celery -A app.workers.celery_app worker
+        -Q code_eval_queue -c 2 --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://amgs:amgs@postgres:5432/amgs
+      - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_CLOUD_API_KEY=${AMGS_GOOGLE_CLOUD_API_KEY:-${GOOGLE_CLOUD_API_KEY:-}}
+      - GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI:-true}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+      - DEFAULT_MODEL=${AMGS_DEFAULT_MODEL:-${DEFAULT_MODEL:-gemini-2.5-flash}}
+      - SUBJECTIVE_OCR_MODEL=${SUBJECTIVE_OCR_MODEL:-}
+      - OBJECTIVE_OCR_MODEL=${OBJECTIVE_OCR_MODEL:-}
+      - SUBJECTIVE_GRADING_MODEL=${SUBJECTIVE_GRADING_MODEL:-}
+      - OBJECTIVE_GRADING_MODEL=${OBJECTIVE_GRADING_MODEL:-}
+      - RUBRICS_GENERATION_MODEL=${RUBRICS_GENERATION_MODEL:-}
+      - CODE_HEALING_MODEL=${CODE_HEALING_MODEL:-}
+      - MODEL_TRANSIENT_MAX_RETRIES=${MODEL_TRANSIENT_MAX_RETRIES:-3}
+      - MODEL_RETRY_INITIAL_BACKOFF_SECONDS=${MODEL_RETRY_INITIAL_BACKOFF_SECONDS:-1.5}
+      - MODEL_RETRY_MAX_BACKOFF_SECONDS=${MODEL_RETRY_MAX_BACKOFF_SECONDS:-12}
+      - UPLOADS_DIR=/data/uploads
+      - CODE_EVAL_ENABLE_LOCAL_EXECUTION=${CODE_EVAL_ENABLE_LOCAL_EXECUTION:-true}
+      - CODE_EVAL_EXECUTION_BACKEND=${CODE_EVAL_EXECUTION_BACKEND:-local}
+      - CODE_EVAL_DOCKER_DEFAULT_IMAGE=${CODE_EVAL_DOCKER_DEFAULT_IMAGE:-python:3.11-slim}
+      - CODE_EVAL_DOCKER_FORCE_NO_NETWORK=${CODE_EVAL_DOCKER_FORCE_NO_NETWORK:-true}
+      - CODE_EVAL_DOCKER_AUTO_PULL=${CODE_EVAL_DOCKER_AUTO_PULL:-true}
+      - CODE_EVAL_MICROVM_ENABLE_ADAPTER=${CODE_EVAL_MICROVM_ENABLE_ADAPTER:-false}
+      - CODE_EVAL_MICROVM_RUNTIME_MODE=${CODE_EVAL_MICROVM_RUNTIME_MODE:-pending}
+      - CODE_EVAL_MICROVM_ALLOW_FALLBACK=${CODE_EVAL_MICROVM_ALLOW_FALLBACK:-true}
+      - CODE_EVAL_MICROVM_FALLBACK_BACKEND=${CODE_EVAL_MICROVM_FALLBACK_BACKEND:-docker}
+      - CODE_EVAL_MICROVM_RUNTIME_BRIDGE_URL=${CODE_EVAL_MICROVM_RUNTIME_BRIDGE_URL:-}
+      - CODE_EVAL_MICROVM_RUNTIME_BRIDGE_API_KEY=${CODE_EVAL_MICROVM_RUNTIME_BRIDGE_API_KEY:-}
+      - CODE_EVAL_MICROVM_RUNTIME_BRIDGE_TIMEOUT_SECONDS=${CODE_EVAL_MICROVM_RUNTIME_BRIDGE_TIMEOUT_SECONDS:-30}
+      - CODE_EVAL_MICROVM_RUNTIME_BRIDGE_VERIFY_TLS=${CODE_EVAL_MICROVM_RUNTIME_BRIDGE_VERIFY_TLS:-true}
+      - CODE_EVAL_MICROVM_FIRECRACKER_BIN=${CODE_EVAL_MICROVM_FIRECRACKER_BIN:-/usr/local/bin/firecracker}
+      - CODE_EVAL_MICROVM_SNAPSHOT_VMSTATE_PATH=${CODE_EVAL_MICROVM_SNAPSHOT_VMSTATE_PATH:-}
+      - CODE_EVAL_MICROVM_SNAPSHOT_MEM_PATH=${CODE_EVAL_MICROVM_SNAPSHOT_MEM_PATH:-}
+      - CODE_EVAL_MICROVM_API_SOCKET_DIR=${CODE_EVAL_MICROVM_API_SOCKET_DIR:-/tmp/codeeval-firecracker/sockets}
+      - CODE_EVAL_MICROVM_RUNTIME_WORKDIR=${CODE_EVAL_MICROVM_RUNTIME_WORKDIR:-/tmp/codeeval-firecracker/runs}
+      - CODE_EVAL_MICROVM_FIRECRACKER_API_TIMEOUT_SECONDS=${CODE_EVAL_MICROVM_FIRECRACKER_API_TIMEOUT_SECONDS:-5}
+      - CODE_EVAL_MICROVM_VSOCK_GUEST_CID=${CODE_EVAL_MICROVM_VSOCK_GUEST_CID:-3}
+      - CODE_EVAL_MICROVM_VSOCK_PORT=${CODE_EVAL_MICROVM_VSOCK_PORT:-7000}
+      - CODE_EVAL_MICROVM_VSOCK_UDS_PATH=${CODE_EVAL_MICROVM_VSOCK_UDS_PATH:-/tmp/firecracker-snap-python311.vsock}
+      - CODE_EVAL_MICROVM_VSOCK_CONNECT_TIMEOUT_SECONDS=${CODE_EVAL_MICROVM_VSOCK_CONNECT_TIMEOUT_SECONDS:-5}
+      - CODE_EVAL_ENABLE_SHIM_RETRY=${CODE_EVAL_ENABLE_SHIM_RETRY:-true}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── Code-Eval Runtime Bridge (optional reference service) ─────────────────
+  runtime-bridge:
+    build:
+      context: .
+      dockerfile: runtime_bridge_service/Dockerfile
+    image: amgs-runtime-bridge:latest
+    container_name: amgs-runtime-bridge
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    environment:
+      - RUNTIME_BRIDGE_API_KEY=${CODE_EVAL_MICROVM_RUNTIME_BRIDGE_API_KEY:-}
+      - RUNTIME_BRIDGE_EXECUTOR_MODE=${RUNTIME_BRIDGE_EXECUTOR_MODE:-local_reference}
+      - RUNTIME_BRIDGE_MICROVM_EXECUTE_URL=${RUNTIME_BRIDGE_MICROVM_EXECUTE_URL:-}
+      - RUNTIME_BRIDGE_MICROVM_API_KEY=${RUNTIME_BRIDGE_MICROVM_API_KEY:-}
+      - RUNTIME_BRIDGE_MICROVM_TIMEOUT_SECONDS=${RUNTIME_BRIDGE_MICROVM_TIMEOUT_SECONDS:-30}
+      - RUNTIME_BRIDGE_MICROVM_VERIFY_TLS=${RUNTIME_BRIDGE_MICROVM_VERIFY_TLS:-true}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8099/health', timeout=5).read()\"",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── vLLM: GLM-OCR inference server ───────────────────────────────────────────
+  vllm-server:
+    build:
+      context: .
+      dockerfile: vllm/Dockerfile
+      args:
+        TRANSFORMERS_COMMIT: ${TRANSFORMERS_REF:-3a3b59cb1a7c0238c8d1072e35d3879c5faff48e}
+    image: amgs-vllm-glmocr:stable
+    container_name: vllm-server
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    shm_size: "2g"
+    ports:
+      - "8082:8080"
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        vllm serve zai-org/GLM-OCR \
+          --served-model-name glm-ocr \
+          --gpu-memory-utilization 0.78 \
+          --max-model-len 2048 \
+          --dtype float16 \
+          --enforce-eager \
+          --num-gpu-blocks-override 500 \
+          --no-enable-prefix-caching \
+          --port 8080 \
+          --allowed-local-media-path /
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/models"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 600s
+
+  # ── OCR Service (FastAPI + PP-DocLayout) ──────────────────────────────────────
+  ocr-service:
+    build:
+      context: .
+      dockerfile: ocr_service/Dockerfile
+    image: ocr-service:latest
+    container_name: ocr-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - hf-cache:/hf-cache
+    environment:
+      - VLLM_URL=http://vllm-server:8080/v1
+      - VLLM_MODEL=glm-ocr
+      - LAYOUT_MODEL=PaddlePaddle/PP-DocLayoutV3_safetensors
+      - MAX_BATCH_SIZE=32
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+    depends_on:
+      vllm-server:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/v1/health', timeout=5).read()\"",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # ── Next.js Frontend ─────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: amgs-frontend:latest
+    container_name: amgs-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - BACKEND_URL=http://backend:8080
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  pg-data:
+  hf-cache:
+  uploads:

@@ -1,0 +1,1 @@
+{"content_json":{"questions":[{"id":"Q1","description":"Cache locality and execution strategy","max_marks":20,"criteria":[{"step":"Explains cache locality","marks":10,"partial_credit":true},{"step":"Explains eager vs graph/cudagraph trade-off","marks":10,"partial_credit":true}]}]},"source":"manual"}

@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --font-inter: 'Inter', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  @apply bg-surface text-slate-100 antialiased;
+  font-family: var(--font-inter);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { @apply bg-surface-1; }
+::-webkit-scrollbar-thumb { @apply bg-surface-3 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-accent; }
+
+/* Glass card */
+.glass {
+  @apply bg-surface-1/80 backdrop-blur-md border border-white/[0.06] rounded-2xl;
+}
+
+/* Gradient text */
+.gradient-text {
+  @apply bg-gradient-to-r from-accent-light to-indigo-300 bg-clip-text text-transparent;
+}
+
+/* Status pill */
+.pill {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold;
+}
+
+/* Hover card lift */
+.card-hover {
+  @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/30;
+}
+
+/* Focus ring */
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface;
+}
+
+/* Bounding box overlays */
+.bbox-text    { @apply stroke-emerald-400 fill-emerald-400/10; }
+.bbox-formula { @apply stroke-violet-400  fill-violet-400/10; }
+.bbox-table   { @apply stroke-sky-400     fill-sky-400/10; }
+.bbox-flagged { @apply stroke-amber-400   fill-amber-400/10; }

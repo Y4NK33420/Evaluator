@@ -1,0 +1,327 @@
+{
+  "assignment": {
+    "id": "1b15371b-c34f-43ca-b003-200fa864cce2",
+    "course_id": "ENG101",
+    "classroom_id": null,
+    "title": "Live E2E Structured Output Run",
+    "description": "Live run with Gemini OCR and grading",
+    "deadline": null,
+    "max_marks": 10.0,
+    "question_type": "mixed",
+    "has_code_question": false,
+    "created_at": "2026-04-04T22:26:20.252606"
+  },
+  "generated_rubric": {
+    "id": "a05c4f77-02a1-4aed-a6f1-c911323147a7",
+    "assignment_id": "1b15371b-c34f-43ca-b003-200fa864cce2",
+    "content_json": {
+      "questions": [
+        {
+          "id": "Q1",
+          "description": "Explain how the writer conveys the essence of time.",
+          "max_marks": 2.0,
+          "criteria": [
+            {
+              "step": "Identifies 'interpretation' as a key mechanism",
+              "marks": 1.0,
+              "partial_credit": false
+            },
+            {
+              "step": "Identifies 'perspective' as a key mechanism",
+              "marks": 1.0,
+              "partial_credit": false
+            }
+          ]
+        },
+        {
+          "id": "Q2",
+          "description": "Calculate the required values for parts a, b, and c.",
+          "max_marks": 6.0,
+          "criteria": [
+            {
+              "step": "Correct calculation for Q2a (4.6)",
+              "marks": 2.0,
+              "partial_credit": false
+            },
+            {
+              "step": "Correct calculation for Q2b (3.33)",
+              "marks": 2.0,
+              "partial_credit": false
+            },
+            {
+              "step": "Correct calculation for Q2c (8883300)",
+              "marks": 2.0,
+              "partial_credit": false
+            }
+          ]
+        },
+        {
+          "id": "Q3",
+          "description": "Describe the conditions under which the flower blooms.",
+          "max_marks": 2.0,
+          "criteria": [
+            {
+              "step": "Mentions sudden sunshine",
+              "marks": 1.0,
+              "partial_credit": false
+            },
+            {
+              "step": "Mentions the position (lying flat on grass)",
+              "marks": 1.0,
+              "partial_credit": false
+            }
+          ]
+        }
+      ]
+    },
+    "source": "ai_generated",
+    "approved": false,
+    "approved_by": null,
+    "created_at": "2026-04-04T22:26:23.785207"
+  },
+  "approved_rubric": {
+    "id": "a05c4f77-02a1-4aed-a6f1-c911323147a7",
+    "assignment_id": "1b15371b-c34f-43ca-b003-200fa864cce2",
+    "content_json": {
+      "questions": [
+        {
+          "id": "Q1",
+          "description": "Explain how the writer conveys the essence of time.",
+          "max_marks": 2.0,
+          "criteria": [
+            {
+              "step": "Identifies 'interpretation' as a key mechanism",
+              "marks": 1.0,
+              "partial_credit": false
+            },
+            {
+              "step": "Identifies 'perspective' as a key mechanism",
+              "marks": 1.0,
+              "partial_credit": false
+            }
+          ]
+        },
+        {
+          "id": "Q2",
+          "description": "Calculate the required values for parts a, b, and c.",
+          "max_marks": 6.0,
+          "criteria": [
+            {
+              "step": "Correct calculation for Q2a (4.6)",
+              "marks": 2.0,
+              "partial_credit": false
+            },
+            {
+              "step": "Correct calculation for Q2b (3.33)",
+              "marks": 2.0,
+              "partial_credit": false
+            },
+            {
+              "step": "Correct calculation for Q2c (8883300)",
+              "marks": 2.0,
+              "partial_credit": false
+            }
+          ]
+        },
+        {
+          "id": "Q3",
+          "description": "Describe the conditions under which the flower blooms.",
+          "max_marks": 2.0,
+          "criteria": [
+            {
+              "step": "Mentions sudden sunshine",
+              "marks": 1.0,
+              "partial_credit": false
+            },
+            {
+              "step": "Mentions the position (lying flat on grass)",
+              "marks": 1.0,
+              "partial_credit": false
+            }
+          ]
+        }
+      ]
+    },
+    "source": "ai_generated",
+    "approved": true,
+    "approved_by": "instructor-live",
+    "created_at": "2026-04-04T22:26:23.785207"
+  },
+  "upload": {
+    "job_id": "563f7607-abd0-48be-bebb-65a30fdd23c6",
+    "submission_id": "563f7607-abd0-48be-bebb-65a30fdd23c6",
+    "status": "enqueued"
+  },
+  "submission": {
+    "id": "563f7607-abd0-48be-bebb-65a30fdd23c6",
+    "assignment_id": "1b15371b-c34f-43ca-b003-200fa864cce2",
+    "student_id": "stu-live-1",
+    "student_name": "Live Student",
+    "status": "graded",
+    "ocr_result": {
+      "blocks": [
+        {
+          "index": 0,
+          "label": "text",
+          "content": "The answer for the given question lies in how the writer wants the readers to understand the essence of time.",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "1"
+        },
+        {
+          "index": 1,
+          "label": "text",
+          "content": "4.6",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "2.a"
+        },
+        {
+          "index": 2,
+          "label": "text",
+          "content": "3.33",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "2.b"
+        },
+        {
+          "index": 3,
+          "label": "text",
+          "content": "8883300",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "2.c"
+        },
+        {
+          "index": 4,
+          "label": "text",
+          "content": "The flower blooms because of sudden sunshine as it lays flat on the grass.",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "3"
+        }
+      ],
+      "block_count": 5,
+      "flagged_count": 0,
+      "engine": "gemini",
+      "raw_text": "{\"1\": \"The answer for the given question lies in how the writer wants the readers to understand the essence of time.\", \"2\": {\"a\": \"4.6\", \"b\": \"3.33\", \"c\": \"8883300\"}, \"3\": \"The flower blooms because of sudden sunshine as it lays flat on the grass.\"}",
+      "model": "gemini-3.1-flash-lite-preview"
+    },
+    "ocr_engine": "gemini",
+    "error_message": null,
+    "created_at": "2026-04-04T22:26:24.209880",
+    "updated_at": "2026-04-04T22:26:32.838419"
+  },
+  "grade": {
+    "id": "8fae3215-9cf9-436f-bf91-070d02176e06",
+    "submission_id": "563f7607-abd0-48be-bebb-65a30fdd23c6",
+    "active_version": true,
+    "total_score": 8.0,
+    "breakdown_json": {
+      "total_score": 8.0,
+      "is_truncated": false,
+      "score_details": {
+        "granularity": "rubric_step_level",
+        "rubric_step_scores": [
+          {
+            "question_id": "Q1",
+            "step_id": "Q1.S1",
+            "step": "Identifies 'interpretation' as a key mechanism",
+            "marks_awarded": 0.0,
+            "max_marks": 1.0,
+            "feedback": "The answer does not mention interpretation."
+          },
+          {
+            "question_id": "Q1",
+            "step_id": "Q1.S2",
+            "step": "Identifies 'perspective' as a key mechanism",
+            "marks_awarded": 0.0,
+            "max_marks": 1.0,
+            "feedback": "The answer does not mention perspective."
+          },
+          {
+            "question_id": "Q2",
+            "step_id": "Q2.S1",
+            "step": "Correct calculation for Q2a (4.6)",
+            "marks_awarded": 2.0,
+            "max_marks": 2.0,
+            "feedback": "Correct."
+          },
+          {
+            "question_id": "Q2",
+            "step_id": "Q2.S2",
+            "step": "Correct calculation for Q2b (3.33)",
+            "marks_awarded": 2.0,
+            "max_marks": 2.0,
+            "feedback": "Correct."
+          },
+          {
+            "question_id": "Q2",
+            "step_id": "Q2.S3",
+            "step": "Correct calculation for Q2c (8883300)",
+            "marks_awarded": 2.0,
+            "max_marks": 2.0,
+            "feedback": "Correct."
+          },
+          {
+            "question_id": "Q3",
+            "step_id": "Q3.S1",
+            "step": "Mentions sudden sunshine",
+            "marks_awarded": 1.0,
+            "max_marks": 1.0,
+            "feedback": "Correct."
+          },
+          {
+            "question_id": "Q3",
+            "step_id": "Q3.S2",
+            "step": "Mentions the position (lying flat on grass)",
+            "marks_awarded": 1.0,
+            "max_marks": 1.0,
+            "feedback": "Correct."
+          }
+        ]
+      },
+      "breakdown": {
+        "Q1": {
+          "marks_awarded": 0.0,
+          "max_marks": 2.0,
+          "feedback": "The answer failed to identify the required mechanisms of interpretation and perspective.",
+          "is_truncated": false
+        },
+        "Q2": {
+          "marks_awarded": 6.0,
+          "max_marks": 6.0,
+          "feedback": "All calculations are correct.",
+          "is_truncated": false
+        },
+        "Q3": {
+          "marks_awarded": 2.0,
+          "max_marks": 2.0,
+          "feedback": "Both conditions for the flower blooming were correctly identified.",
+          "is_truncated": false
+        }
+      },
+      "assignment_id": "1b15371b-c34f-43ca-b003-200fa864cce2",
+      "ocr_engine": "gemini",
+      "model": "gemini-3.1-flash-lite-preview",
+      "scoring_mode": "rubric_step_level",
+      "scoring_config": {
+        "mode": "rubric_step_level",
+        "coding_weights": null,
+        "directive": "Use rubric-step-level scoring. In score_details return: {\"granularity\": \"rubric_step_level\", \"rubric_step_scores\": [{\"question_id\": \"Q1\", \"step_id\": \"Q1.S1\", \"step\": \"...\", \"marks_awarded\": <float>, \"max_marks\": <float>, \"feedback\": \"...\"}]}."
+      }
+    },
+    "source": "AI_Generated",
+    "classroom_status": "not_synced",
+    "is_truncated": false,
+    "graded_at": "2026-04-04T22:26:32.850723"
+  },
+  "audit_actions": [
+    "ai_grade"
+  ]
+}

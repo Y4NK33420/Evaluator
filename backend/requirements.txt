@@ -1,0 +1,36 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+pydantic==2.11.1
+pydantic-settings==2.8.1
+
+# Database
+sqlalchemy==2.0.40
+alembic==1.15.2
+psycopg2-binary==2.9.10
+
+# Celery / Redis
+celery[redis]==5.4.0
+redis==5.2.1
+
+# OCR + image
+Pillow==11.1.0
+httpx==0.28.1
+requests==2.32.3
+opencv-python-headless==4.11.0.86
+pytesseract==0.3.13
+
+# AI
+openai==1.72.0
+google-genai>=1.10.0
+docker==7.1.0
+
+# Google Classroom
+google-api-python-client==2.165.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.1
+
+# Dev / test
+pytest==8.3.5
+pytest-asyncio==0.26.0
+httpx==0.28.1

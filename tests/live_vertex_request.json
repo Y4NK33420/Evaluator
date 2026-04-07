@@ -1,0 +1,20 @@
+﻿{
+  "contents": {
+    "role": "USER",
+    "parts": {
+      "text": "Return a tiny status payload."
+    }
+  },
+  "generation_config": {
+    "responseMimeType": "application/json",
+    "responseSchema": {
+      "type": "OBJECT",
+      "properties": {
+        "status": {"type": "STRING", "description": "Service status"},
+        "ready": {"type": "BOOLEAN", "description": "Whether model responded"}
+      },
+      "required": ["status", "ready"],
+      "propertyOrdering": ["status", "ready"]
+    }
+  }
+}

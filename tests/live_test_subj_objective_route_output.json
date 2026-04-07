@@ -1,0 +1,5 @@
+{
+  "engine": null,
+  "result": null,
+  "exception": "TypeError(\"_gemini_ocr() missing 1 required positional argument: 'model_name'\")"
+}

@@ -1,0 +1,247 @@
+{
+  "image": "tests\\test_image.jpeg",
+  "layout_model": "PaddlePaddle/PP-DocLayoutV3_safetensors",
+  "ocr_model": "glm-ocr",
+  "block_count": 17,
+  "flagged_count": 14,
+  "blocks": [
+    {
+      "index": 0,
+      "label": "text",
+      "score": 0.6449,
+      "content": "· Shannon Chawall Capacity",
+      "bbox_2d": [
+        60,
+        13,
+        509,
+        54
+      ],
+      "confidence": 0.8346,
+      "flagged": true
+    },
+    {
+      "index": 1,
+      "label": "formula",
+      "score": 0.4684,
+      "content": "$$\n\\left\\{ \\begin{array}{l} M O R = B b l o g _ {2} (1 + S / N) \\\\ (S / N) d B = 1 0 1 0 1 0 1 0 (S / N) \\\\ \\end{array}\n$$",
+      "bbox_2d": [
+        327,
+        57,
+        768,
+        166
+      ],
+      "confidence": 0.9274,
+      "flagged": false
+    },
+    {
+      "index": 2,
+      "label": "text",
+      "score": 0.6783,
+      "content": "· Nyquist Channel capacity",
+      "bbox_2d": [
+        61,
+        160,
+        430,
+        206
+      ],
+      "confidence": 0.8796,
+      "flagged": false
+    },
+    {
+      "index": 3,
+      "label": "formula",
+      "score": 0.4641,
+      "content": "$$\nM O R = 2 B B l o g V \\rightarrow n o o l e w l e w l e l e w l e s s l e l e s\n$$",
+      "bbox_2d": [
+        380,
+        206,
+        809,
+        298
+      ],
+      "confidence": 0.6732,
+      "flagged": true
+    },
+    {
+      "index": 4,
+      "label": "text",
+      "score": 0.4844,
+      "content": "$ d_{trans} = L/R$\n$ d_{prop} = d / 0 $\n$ N $ $ N $ $ d_{prop} = d_{prop} = (N + P - 1) d_{trans} + d_{prop} \\times N $\n$",
+      "bbox_2d": [
+        56,
+        295,
+        934,
+        406
+      ],
+      "confidence": 0.7657,
+      "flagged": true
+    },
+    {
+      "index": 5,
+      "label": "text",
+      "score": 0.7457,
+      "content": "- Channel utilization",
+      "bbox_2d": [
+        65,
+        412,
+        366,
+        445
+      ],
+      "confidence": 0.7882,
+      "flagged": true
+    },
+    {
+      "index": 6,
+      "label": "formula",
+      "score": 0.5139,
+      "content": "$ \\mathrm {总 费 费 费 = \\frac { N}{1 + 2 \\cdot d p o p o p o p} = N \\times \\frac {L + R - R T T}$",
+      "bbox_2d": [
+        192,
+        452,
+        895,
+        531
+      ],
+      "confidence": 0.8053,
+      "flagged": true
+    },
+    {
+      "index": 7,
+      "label": "text",
+      "score": 0.7312,
+      "content": "$ \\textcircledquo $ \\textcircled{1} $ for Stop and until N=1 $",
+      "bbox_2d": [
+        194,
+        529,
+        533,
+        562
+      ],
+      "confidence": 0.8267,
+      "flagged": true
+    },
+    {
+      "index": 8,
+      "label": "text",
+      "score": 0.7079,
+      "content": "$ \\textcircledquo $ \\textcircled{2} $ for sliding window, N=window size $",
+      "bbox_2d": [
+        185,
+        569,
+        712,
+        608
+      ],
+      "confidence": 0.8471,
+      "flagged": true
+    },
+    {
+      "index": 9,
+      "label": "text",
+      "score": 0.7366,
+      "content": "Aloha and Shotted Aloha",
+      "bbox_2d": [
+        52,
+        622,
+        435,
+        649
+      ],
+      "confidence": 0.8018,
+      "flagged": true
+    },
+    {
+      "index": 10,
+      "label": "formula",
+      "score": 0.4112,
+      "content": "$ S=G_{1} P_{1} P_{0}, P[ k \\mathrm {transfissions} ]=\\frac { e^{-G_{1}}$ $ \\mathrm { G} $ $ $ $ $ $ $ $ \\mathrm { P [ k ] $ $ \\mathrm {k}$ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ \\mathrm {k} $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $",
+      "bbox_2d": [
+        84,
+        646,
+        997,
+        773
+      ],
+      "confidence": 0.8928,
+      "flagged": false
+    },
+    {
+      "index": 11,
+      "label": "text",
+      "score": 0.6532,
+      "content": "• MDR = n x Bandwidth (R)",
+      "bbox_2d": [
+        56,
+        776,
+        443,
+        807
+      ],
+      "confidence": 0.7985,
+      "flagged": true
+    },
+    {
+      "index": 12,
+      "label": "text",
+      "score": 0.532,
+      "content": "- No. of bits required (bits to represent window) $ \\log_2 (-1 + 2 \\pi N)",
+      "bbox_2d": [
+        60,
+        810,
+        865,
+        851
+      ],
+      "confidence": 0.7798,
+      "flagged": true
+    },
+    {
+      "index": 13,
+      "label": "text",
+      "score": 0.6821,
+      "content": "• Contention Free Protocol",
+      "bbox_2d": [
+        61,
+        850,
+        416,
+        877
+      ],
+      "confidence": 0.6067,
+      "flagged": true
+    },
+    {
+      "index": 14,
+      "label": "formula",
+      "score": 0.6244,
+      "content": "1) $ \\mathrm {B} \\mathrm {B} \\mathrm {B} \\mathrm {t} \\mathrm {t} \\mathrm {m a p a p a p a p a l o w a p l a l o w a l o w i t o d a l o d = d / d + N $",
+      "bbox_2d": [
+        206,
+        873,
+        561,
+        905
+      ],
+      "confidence": 0.6243,
+      "flagged": true
+    },
+    {
+      "index": 15,
+      "label": "formula",
+      "score": 0.6183,
+      "content": "b) $ 1 \\mathrm {1} \\mathrm {load} d = d / d + 1$",
+      "bbox_2d": [
+        303,
+        901,
+        562,
+        929
+      ],
+      "confidence": 0.8,
+      "flagged": true
+    },
+    {
+      "index": 16,
+      "label": "formula",
+      "score": 0.7295,
+      "content": "2) $ B E n : C o u n : C o u n d a d d a n d o u n = \\frac {\\alpha}{\\alpha} = \\frac {\\alpha}{\\alpha + \\log_ {2} N .",
+      "bbox_2d": [
+        202,
+        927,
+        601,
+        986
+      ],
+      "confidence": 0.7727,
+      "flagged": true
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+{
+  "mode": "coding",
+  "assignment": {
+    "id": "56edf521-4d49-4807-a37a-1f4aafc18c51",
+    "course_id": "CSE101",
+    "classroom_id": null,
+    "title": "Live Coding Mode",
+    "description": "Coding-mode live run",
+    "deadline": null,
+    "max_marks": 10.0,
+    "question_type": "subjective",
+    "has_code_question": true,
+    "created_at": "2026-04-04T23:36:29.847237"
+  },
+  "rubric": {
+    "id": "b4c95500-ae33-47cd-b38b-399d5658005c",
+    "assignment_id": "56edf521-4d49-4807-a37a-1f4aafc18c51",
+    "content_json": {
+      "questions": [
+        {
+          "id": "Q1",
+          "description": "Coding-style reasoning and correctness",
+          "max_marks": 10.0,
+          "criteria": [
+            {
+              "step": "Approach correctness",
+              "marks": 4.0,
+              "partial_credit": true
+            },
+            {
+              "step": "Edge case handling",
+              "marks": 3.0,
+              "partial_credit": true
+            },
+            {
+              "step": "Explanation clarity",
+              "marks": 3.0,
+              "partial_credit": true
+            }
+          ]
+        }
+      ],
+      "scoring_policy": {
+        "coding": {
+          "rubric_weight": 0.4,
+          "testcase_weight": 0.6
+        }
+      }
+    },
+    "source": "manual",
+    "approved": true,
+    "approved_by": null,
+    "created_at": "2026-04-04T23:36:30.060183"
+  },
+  "upload": {
+    "job_id": "9b7e9c5e-5dd3-4a08-91da-d13af4d42748",
+    "submission_id": "9b7e9c5e-5dd3-4a08-91da-d13af4d42748",
+    "status": "enqueued"
+  },
+  "submission": {
+    "id": "9b7e9c5e-5dd3-4a08-91da-d13af4d42748",
+    "assignment_id": "56edf521-4d49-4807-a37a-1f4aafc18c51",
+    "student_id": "stu-coding",
+    "student_name": "Student coding",
+    "status": "graded",
+    "ocr_result": {
+      "blocks": [
+        {
+          "index": 0,
+          "label": "text",
+          "content": "The answer for the given question lies in how the writer wants the readers to understand the essence of time.",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "1"
+        },
+        {
+          "index": 1,
+          "label": "text",
+          "content": "4.6",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "2.a"
+        },
+        {
+          "index": 2,
+          "label": "text",
+          "content": "3.33",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "2.b"
+        },
+        {
+          "index": 3,
+          "label": "text",
+          "content": "8883300",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "2.c"
+        },
+        {
+          "index": 4,
+          "label": "text",
+          "content": "The flower blooms because of sudden sunshine as it lays flat on the grass.",
+          "bbox_2d": null,
+          "confidence": 0.9,
+          "flagged": false,
+          "question": "3"
+        }
+      ],
+      "block_count": 5,
+      "flagged_count": 0,
+      "engine": "gemini",
+      "raw_text": "{\"1\": \"The answer for the given question lies in how the writer wants the readers to understand the essence of time.\", \"2\": {\"a\": \"4.6\", \"b\": \"3.33\", \"c\": \"8883300\"}, \"3\": \"The flower blooms because of sudden sunshine as it lays flat on the grass.\"}",
+      "model": "gemini-3.1-flash-lite-preview"
+    },
+    "ocr_engine": "gemini",
+    "error_message": null,
+    "created_at": "2026-04-04T23:36:30.293479",
+    "updated_at": "2026-04-04T23:36:43.817788"
+  },
+  "grade": {
+    "id": "629d43e6-309f-4b5f-a4e5-a18fd242455d",
+    "submission_id": "9b7e9c5e-5dd3-4a08-91da-d13af4d42748",
+    "active_version": true,
+    "total_score": 3.0,
+    "breakdown_json": {
+      "total_score": 3.0,
+      "is_truncated": false,
+      "score_details": {
+        "granularity": "hybrid_code",
+        "rubric_step_scores": [
+          {
+            "question_id": "Q1",
+            "step_id": "S1",
+            "step": "Approach correctness",
+            "marks_awarded": 0.0,
+            "max_marks": 4.0,
+            "feedback": "The student provided irrelevant text answers instead of the required code solution."
+          },
+          {
+            "question_id": "Q1",
+            "step_id": "S2",
+            "step": "Edge case handling",
+            "marks_awarded": 0.0,
+            "max_marks": 3.0,
+            "feedback": "No code provided to evaluate edge cases."
+          },
+          {
+            "question_id": "Q1",
+            "step_id": "S3",
+            "step": "Explanation clarity",
+            "marks_awarded": 3.0,
+            "max_marks": 3.0,
+            "feedback": "The student provided a coherent, albeit irrelevant, explanation for a different topic."
+          }
+        ],
+        "coding": {
+          "rubric_weight": 0.4,
+          "testcase_weight": 0.6,
+          "rubric_score": 3.0,
+          "testcase_score": 0.0,
+          "combined_score": 1.2,
+          "non_coding_score": 1.8
+        }
+      },
+      "breakdown": {
+        "Q1": {
+          "marks_awarded": 3.0,
+          "max_marks": 10.0,
+          "feedback": "The submission did not contain the required code. Only partial marks were awarded for the clarity of the written text provided, despite it being off-topic.",
+          "is_truncated": false
+        }
+      },
+      "assignment_id": "56edf521-4d49-4807-a37a-1f4aafc18c51",
+      "ocr_engine": "gemini",
+      "model": "gemini-3.1-flash-lite-preview",
+      "scoring_mode": "hybrid_code",
+      "scoring_config": {
+        "mode": "hybrid_code",
+        "coding_weights": {
+          "rubric_weight": 0.4,
+          "testcase_weight": 0.6
+        },
+        "directive": "This assignment has coding and must use hybrid scoring. Use rubric_weight=0.400000 and testcase_weight=0.600000. Return score_details with this shape: {\"granularity\": \"hybrid_code\", \"rubric_step_scores\": [...], \"coding\": {\"rubric_weight\": <float>, \"testcase_weight\": <float>, \"rubric_score\": <float>, \"testcase_score\": <float>, \"combined_score\": <float>, \"non_coding_score\": <float>, \"testcases\": [{\"testcase_id\": \"TC1\", \"passed\": <bool>, \"marks_awarded\": <float>, \"max_marks\": <float>, \"feedback\": \"...\"}]}}. combined_score must equal rubric_weight * rubric_score + testcase_weight * testcase_score. total_score must equal non_coding_score + combined_score. If instructor wants 100% testcase based, testcase_weight can be 1.0 and rubric_weight 0.0."
+      }
+    },
+    "source": "AI_Generated",
+    "classroom_status": "not_synced",
+    "is_truncated": false,
+    "graded_at": "2026-04-04T23:36:43.829530"
+  },
+  "grade_status_code": 200,
+  "audit_actions": [
+    "ai_grade"
+  ]
+}

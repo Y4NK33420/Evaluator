@@ -1,0 +1,13 @@
+[Unit]
+Description=CodeEval Firecracker Guest Agent
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/sh -c 'echo "agent-start $(date -Iseconds)" >>/var/log/codeeval-guest-agent.log; exec /usr/bin/python2.7 -u /opt/codeeval/agent.py >>/var/log/codeeval-guest-agent.log 2>&1'
+Restart=always
+RestartSec=1
+Environment=CODE_EVAL_GUEST_AGENT_PORT=7000
+
+[Install]
+WantedBy=multi-user.target

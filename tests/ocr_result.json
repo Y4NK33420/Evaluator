@@ -1,0 +1,139 @@
+{
+  "image": "tests\\test_image.jpeg",
+  "raw_text": "• Shannon Channel Capacity\nNoisy channel\n$$\\begin{cases} MDR = 2B \\log_2 \\left(1 + S / N\\right) \\\\ S / N = 10 \\log_10 (S / N) \\end{cases}$$\n• Nyquist Channel capacity\nNoisless\n$$\\begin{cases} MDR = 2B \\log_2 V \\rightarrow \\text{no. of dwells.} \\\\ N \\text{ limits and } P \\text{ packets.} \\\\ d_{\\text{dry}} = L / R \\\\ d_{\\text{drop}} = d / O \\end{cases}$$\n$d_{\\text{dry}} = (N + P - 1) d_{\\text{dry}} + d_{\\text{drop}} \\times N$\n\n• Channel utilization\n$$\\frac{N}{1 + 2 \\cdot d_{\\text{drop}}} = N \\times \\frac{L}{L + R \\cdot RTT}$$\n$\\textcircled{1}$ for Stop and wait, $N = 1$\n$\\textcircled{2}$ for sliding window, $N = \\text{window size}$.\n\n• Alcohol and Slotted Alcohol\n$S = G_1 P_0$, $P[K \\text{ transmissions}] = \\frac{e^{-G_1} G_k}{k_1}$\n$$\\begin{cases} \\text{Slotted Alcohol} \\rightarrow S = G_1 e^{-G_1} \\\\ \\text{Pulse} \\rightarrow S = G_1 e^{-2 G_1} \\end{cases}$$\n$\\textcircled{3}$ new + old transmission\n$L \\text{ mean of position}$\n$L \\text{ lag of frame time}$\n\n• MDR = $N \\times \\text{Bandwidth (R)}$\n\n• No. of bits required (bits to represent window) $\\Rightarrow \\prod \\log_2 (1 + 2 \\cdot N)$\n\n• Concentration Free Protocol →\n1) Bit map (low load) = $d / d + N$\n2) 1 load = $d / d + 1$\n3) Bit count. Countdown = $\\frac{d}{d + \\log_2 N}$<|user|>",
+  "token_count": 510,
+  "blocks": [
+    {
+      "text": "• Shannon Channel Capacity",
+      "confidence": 0.992,
+      "flagged": false
+    },
+    {
+      "text": "Noisy channel",
+      "confidence": 0.9434,
+      "flagged": false
+    },
+    {
+      "text": "$$\\begin{cases} MDR = 2B \\log_2 \\left(1 + S / N\\right) \\\\ S / N = 10 \\log_10 (S / N) \\end{cases}$$",
+      "confidence": 0.8634,
+      "flagged": false
+    },
+    {
+      "text": "• Nyquist Channel capacity",
+      "confidence": 0.9824,
+      "flagged": false
+    },
+    {
+      "text": "Noisless",
+      "confidence": 0.8787,
+      "flagged": false
+    },
+    {
+      "text": "$$\\begin{cases} MDR = 2B \\log_2 V \\rightarrow \\text{no. of dwells.} \\\\ N \\text{ limits and } P \\text{ packets.} \\\\ d_{\\text{dry}} = L / R \\\\ d_{\\text{drop}} = d / O \\end{cases}$$",
+      "confidence": 0.8643,
+      "flagged": false
+    },
+    {
+      "text": "$d_{\\text{dry}} = (N + P - 1) d_{\\text{dry}} + d_{\\text{drop}} \\times N$",
+      "confidence": 0.9916,
+      "flagged": false
+    },
+    {
+      "text": "• Channel utilization",
+      "confidence": 0.9499,
+      "flagged": false
+    },
+    {
+      "text": "$$\\frac{N}{1 + 2 \\cdot d_{\\text{drop}}} = N \\times \\frac{L}{L + R \\cdot RTT}$$",
+      "confidence": 0.9446,
+      "flagged": false
+    },
+    {
+      "text": "$\\textcircled{1}$ for Stop and wait, $N = 1$",
+      "confidence": 0.9626,
+      "flagged": false
+    },
+    {
+      "text": "$\\textcircled{2}$ for sliding window, $N = \\text{window size}$.",
+      "confidence": 0.9954,
+      "flagged": false
+    },
+    {
+      "text": "• Alcohol and Slotted Alcohol",
+      "confidence": 0.7167,
+      "flagged": true
+    },
+    {
+      "text": "$S = G_1 P_0$, $P[K \\text{ transmissions}] = \\frac{e^{-G_1} G_k}{k_1}$",
+      "confidence": 0.9266,
+      "flagged": false
+    },
+    {
+      "text": "$$\\begin{cases} \\text{Slotted Alcohol} \\rightarrow S = G_1 e^{-G_1} \\\\ \\text{Pulse} \\rightarrow S = G_1 e^{-2 G_1} \\end{cases}$$",
+      "confidence": 0.9695,
+      "flagged": false
+    },
+    {
+      "text": "$\\textcircled{3}$ new + old transmission",
+      "confidence": 0.9122,
+      "flagged": false
+    },
+    {
+      "text": "$L \\text{ mean of position}$",
+      "confidence": 0.9124,
+      "flagged": false
+    },
+    {
+      "text": "$L \\text{ lag of frame time}$",
+      "confidence": 0.8358,
+      "flagged": true
+    },
+    {
+      "text": "• MDR = $N \\times \\text{Bandwidth (R)}$",
+      "confidence": 0.9546,
+      "flagged": false
+    },
+    {
+      "text": "• No. of bits required (bits to represent window) $\\Rightarrow \\prod \\log_2 (1 + 2 \\cdot N)$",
+      "confidence": 0.863,
+      "flagged": false
+    },
+    {
+      "text": "• Concentration Free Protocol →",
+      "confidence": 0.7438,
+      "flagged": true
+    },
+    {
+      "text": "1) Bit map (low load) = $d / d + N$",
+      "confidence": 0.8533,
+      "flagged": false
+    },
+    {
+      "text": "2) 1 load = $d / d + 1$",
+      "confidence": 0.908,
+      "flagged": false
+    },
+    {
+      "text": "3) Bit count. Countdown = $\\frac{d}{d + \\log_2 N}$<|user|>",
+      "confidence": 0.9389,
+      "flagged": false
+    }
+  ],
+  "flagged_blocks": [
+    {
+      "text": "• Alcohol and Slotted Alcohol",
+      "confidence": 0.7167,
+      "flagged": true
+    },
+    {
+      "text": "$L \\text{ lag of frame time}$",
+      "confidence": 0.8358,
+      "flagged": true
+    },
+    {
+      "text": "• Concentration Free Protocol →",
+      "confidence": 0.7438,
+      "flagged": true
+    }
+  ]
+}

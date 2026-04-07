@@ -1,0 +1,66 @@
+services:
+  # Linux/KVM override for real Firecracker execution.
+  # Usage:
+  #   docker compose -f docker-compose.yml -f docker-compose.microvm.yml up -d backend worker-code-eval
+  # Notes:
+  # - Host must expose /dev/kvm.
+  # - Snapshot files must exist under ./microvm/snapshots.
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.microvm
+    image: amgs-backend-microvm:latest
+    privileged: true
+    devices:
+      - /dev/kvm:/dev/kvm
+    environment:
+      - CODE_EVAL_EXECUTION_BACKEND=microvm
+      - CODE_EVAL_MICROVM_ENABLE_ADAPTER=true
+      - CODE_EVAL_MICROVM_RUNTIME_MODE=firecracker_vsock
+      - CODE_EVAL_MICROVM_ALLOW_FALLBACK=false
+      - CODE_EVAL_MICROVM_FIRECRACKER_BIN=/usr/local/bin/firecracker
+      - CODE_EVAL_MICROVM_SNAPSHOT_VMSTATE_PATH=/opt/microvm/snapshots/python311.vmstate
+      - CODE_EVAL_MICROVM_SNAPSHOT_MEM_PATH=/opt/microvm/snapshots/python311.mem
+      - CODE_EVAL_MICROVM_API_SOCKET_DIR=/tmp/codeeval-firecracker-local/sockets
+      - CODE_EVAL_MICROVM_RUNTIME_WORKDIR=/tmp/codeeval-firecracker-local/runs
+      - CODE_EVAL_MICROVM_FIRECRACKER_API_TIMEOUT_SECONDS=30
+      - CODE_EVAL_MICROVM_VSOCK_GUEST_CID=3
+      - CODE_EVAL_MICROVM_VSOCK_PORT=7000
+      - CODE_EVAL_MICROVM_VSOCK_UDS_PATH=/tmp/firecracker-snap-python311.vsock
+      - CODE_EVAL_MICROVM_VSOCK_CONNECT_TIMEOUT_SECONDS=30
+    volumes:
+      - ./microvm/assets:/opt/microvm/assets
+      - ./microvm/snapshots:/opt/microvm/snapshots
+      - ./microvm/runtime:/tmp/codeeval-firecracker
+      - ./microvm_guest_agent:/opt/microvm/guest_agent:ro
+
+  worker-code-eval:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.microvm
+    image: amgs-backend-microvm:latest
+    privileged: true
+    devices:
+      - /dev/kvm:/dev/kvm
+    environment:
+      - CODE_EVAL_EXECUTION_BACKEND=microvm
+      - CODE_EVAL_MICROVM_ENABLE_ADAPTER=true
+      - CODE_EVAL_MICROVM_RUNTIME_MODE=firecracker_vsock
+      - CODE_EVAL_MICROVM_ALLOW_FALLBACK=false
+      - CODE_EVAL_MICROVM_FIRECRACKER_BIN=/usr/local/bin/firecracker
+      - CODE_EVAL_MICROVM_SNAPSHOT_VMSTATE_PATH=/opt/microvm/snapshots/python311.vmstate
+      - CODE_EVAL_MICROVM_SNAPSHOT_MEM_PATH=/opt/microvm/snapshots/python311.mem
+      - CODE_EVAL_MICROVM_API_SOCKET_DIR=/tmp/codeeval-firecracker-local/sockets
+      - CODE_EVAL_MICROVM_RUNTIME_WORKDIR=/tmp/codeeval-firecracker-local/runs
+      - CODE_EVAL_MICROVM_FIRECRACKER_API_TIMEOUT_SECONDS=30
+      - CODE_EVAL_MICROVM_VSOCK_GUEST_CID=3
+      - CODE_EVAL_MICROVM_VSOCK_PORT=7000
+      - CODE_EVAL_MICROVM_VSOCK_UDS_PATH=/tmp/firecracker-snap-python311.vsock
+      - CODE_EVAL_MICROVM_VSOCK_CONNECT_TIMEOUT_SECONDS=30
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./microvm/assets:/opt/microvm/assets
+      - ./microvm/snapshots:/opt/microvm/snapshots
+      - ./microvm/runtime:/tmp/codeeval-firecracker
+      - ./microvm_guest_agent:/opt/microvm/guest_agent:ro

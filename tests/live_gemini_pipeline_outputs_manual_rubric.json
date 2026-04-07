@@ -1,0 +1,75 @@
+{
+  "ocr_stage": {
+    "engine": "gemini",
+    "model": "gemini-3.1-flash-lite-preview",
+    "block_count": 5,
+    "flagged_count": 0,
+    "error": null,
+    "blocks": [
+      {
+        "index": 0,
+        "label": "text",
+        "content": "The answer for the given question lies in how the writer wants the readers to understand the essence of time.",
+        "bbox_2d": null,
+        "confidence": 0.9,
+        "flagged": false,
+        "question": "1.N/A"
+      },
+      {
+        "index": 1,
+        "label": "text",
+        "content": "4.6",
+        "bbox_2d": null,
+        "confidence": 0.9,
+        "flagged": false,
+        "question": "2.a"
+      },
+      {
+        "index": 2,
+        "label": "text",
+        "content": "3.33",
+        "bbox_2d": null,
+        "confidence": 0.9,
+        "flagged": false,
+        "question": "2.b"
+      },
+      {
+        "index": 3,
+        "label": "text",
+        "content": "8883300",
+        "bbox_2d": null,
+        "confidence": 0.9,
+        "flagged": false,
+        "question": "2.c"
+      },
+      {
+        "index": 4,
+        "label": "text",
+        "content": "The flower blooms because of sudden sunshine as it lays flat on the grass.",
+        "bbox_2d": null,
+        "confidence": 0.9,
+        "flagged": false,
+        "question": "3.N/A"
+      }
+    ],
+    "raw_text": "{\"1\": {\"N/A\": \"The answer for the given question lies in how the writer wants the readers to understand the essence of time.\"}, \"2\": {\"a\": \"4.6\", \"b\": \"3.33\", \"c\": \"8883300\"}, \"3\": {\"N/A\": \"The flower blooms because of sudden sunshine as it lays flat on the grass.\"}}"
+  },
+  "grading_stage": {
+    "total_score": 6.5,
+    "is_truncated": false,
+    "score_details": {},
+    "breakdown": {},
+    "assignment_id": "None",
+    "ocr_engine": "gemini",
+    "model": "gemini-3.1-flash-lite-preview",
+    "scoring_mode": "rubric_step_level",
+    "scoring_config": {
+      "mode": "rubric_step_level",
+      "coding_weights": null,
+      "directive": "Use rubric-step-level scoring. In score_details return: {\"granularity\": \"rubric_step_level\", \"rubric_step_scores\": [{\"question_id\": \"Q1\", \"step_id\": \"Q1.S1\", \"step\": \"...\", \"marks_awarded\": <float>, \"max_marks\": <float>, \"feedback\": \"...\"}]}."
+    }
+  },
+  "consistency_validation_stage": {
+    "issues": []
+  }
+}

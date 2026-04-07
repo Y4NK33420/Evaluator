@@ -1,0 +1,201 @@
+{
+  "assignment_create": {
+    "status": 201,
+    "body": {
+      "id": "c9d55811-3672-466d-8424-1e2670e938b9",
+      "course_id": "ENG101",
+      "classroom_id": null,
+      "title": "Mixed Test Sheet",
+      "description": "Q1 subjective, Q2 objective(3 parts), Q3 subjective",
+      "deadline": null,
+      "max_marks": 10.0,
+      "question_type": "mixed",
+      "has_code_question": false,
+      "created_at": "2026-04-04T21:12:50.786601"
+    }
+  },
+  "rubric_upload": {
+    "status": 201,
+    "body": {
+      "id": "baa74f57-48b8-4653-af86-edfa36f28c88",
+      "assignment_id": "c9d55811-3672-466d-8424-1e2670e938b9",
+      "content_json": {
+        "questions": [
+          {
+            "id": "Q1",
+            "max_marks": 4,
+            "criteria": [
+              {
+                "step": "Interpretation",
+                "marks": 4
+              }
+            ]
+          },
+          {
+            "id": "Q2",
+            "max_marks": 3,
+            "criteria": [
+              {
+                "step": "Part a",
+                "marks": 1
+              },
+              {
+                "step": "Part b",
+                "marks": 1
+              },
+              {
+                "step": "Part c",
+                "marks": 1
+              }
+            ]
+          },
+          {
+            "id": "Q3",
+            "max_marks": 3,
+            "criteria": [
+              {
+                "step": "Inference",
+                "marks": 3
+              }
+            ]
+          }
+        ]
+      },
+      "source": "manual",
+      "approved": true,
+      "approved_by": null,
+      "created_at": "2026-04-04T21:12:51.017548"
+    }
+  },
+  "submission_upload": {
+    "status": 202,
+    "body": {
+      "job_id": "c6fadb33-81b4-4071-b95b-643b0f89b451",
+      "submission_id": "c6fadb33-81b4-4071-b95b-643b0f89b451",
+      "status": "enqueued"
+    }
+  },
+  "ocr_correction_regrade": {
+    "status": 200,
+    "body": {
+      "job_id": "c6fadb33-81b4-4071-b95b-643b0f89b451",
+      "submission_id": "c6fadb33-81b4-4071-b95b-643b0f89b451",
+      "status": "re_grading"
+    }
+  },
+  "grade_fetch": {
+    "status": 200,
+    "body": {
+      "id": "167a4dc3-4910-4676-9a16-3c2723695051",
+      "submission_id": "c6fadb33-81b4-4071-b95b-643b0f89b451",
+      "active_version": true,
+      "total_score": 8.0,
+      "breakdown_json": {
+        "total_score": 8.0,
+        "is_truncated": false,
+        "breakdown": {
+          "Q1": {
+            "marks_awarded": 3.5,
+            "max_marks": 4.0,
+            "feedback": "Good interpretation",
+            "is_truncated": false
+          },
+          "Q2": {
+            "marks_awarded": 2.0,
+            "max_marks": 3.0,
+            "feedback": "Two parts correct",
+            "is_truncated": false
+          },
+          "Q3": {
+            "marks_awarded": 2.5,
+            "max_marks": 3.0,
+            "feedback": "Clear reasoning",
+            "is_truncated": false
+          }
+        },
+        "score_details": {
+          "granularity": "rubric_step_level",
+          "rubric_step_scores": [
+            {
+              "question_id": "Q1",
+              "step_id": "Q1.S1",
+              "step": "Interpretation",
+              "marks_awarded": 3.5,
+              "max_marks": 4.0,
+              "feedback": "Good interpretation"
+            },
+            {
+              "question_id": "Q2",
+              "step_id": "Q2.S1",
+              "step": "Part a",
+              "marks_awarded": 1.0,
+              "max_marks": 1.0,
+              "feedback": "Correct"
+            },
+            {
+              "question_id": "Q2",
+              "step_id": "Q2.S2",
+              "step": "Part b",
+              "marks_awarded": 1.0,
+              "max_marks": 1.0,
+              "feedback": "Correct"
+            },
+            {
+              "question_id": "Q2",
+              "step_id": "Q2.S3",
+              "step": "Part c",
+              "marks_awarded": 0.0,
+              "max_marks": 1.0,
+              "feedback": "Incorrect"
+            },
+            {
+              "question_id": "Q3",
+              "step_id": "Q3.S1",
+              "step": "Inference",
+              "marks_awarded": 2.5,
+              "max_marks": 3.0,
+              "feedback": "Clear reasoning"
+            }
+          ]
+        }
+      },
+      "source": "AI_Generated",
+      "classroom_status": "not_synced",
+      "is_truncated": false,
+      "graded_at": "2026-04-04T21:12:52.161736"
+    }
+  },
+  "audit_fetch": {
+    "status": 200,
+    "body": [
+      {
+        "id": "c0aca60d-0ddb-4dff-9ae4-6206c1ec7312",
+        "submission_id": "c6fadb33-81b4-4071-b95b-643b0f89b451",
+        "changed_by": "ta-1",
+        "action": "ocr_correction",
+        "old_value_json": {
+          "block_index": 0,
+          "content": "The answer for the given question lies in how the writeer wants the readers to understand the essence of time."
+        },
+        "new_value_json": {
+          "block_index": 0,
+          "content": "The answer lies in how the writer frames the essence of time."
+        },
+        "reason": "Minor OCR typo correction",
+        "timestamp": "2026-04-04T21:12:51.675647"
+      },
+      {
+        "id": "8a438dc6-d9ad-48dc-87f5-e850ef58b4ae",
+        "submission_id": "c6fadb33-81b4-4071-b95b-643b0f89b451",
+        "changed_by": "system",
+        "action": "ai_grade",
+        "old_value_json": null,
+        "new_value_json": {
+          "total_score": 8.0
+        },
+        "reason": null,
+        "timestamp": "2026-04-04T21:12:52.155136"
+      }
+    ]
+  }
+}
