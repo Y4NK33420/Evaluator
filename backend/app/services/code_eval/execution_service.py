@@ -18,6 +18,7 @@ from typing import Any
 
 from app.config import get_settings
 from app.services.code_eval.contracts import AttemptResult, CodeEvalJobRequest
+from app.services.code_eval.language_profiles import get_language_profile
 from app.services.code_eval.microvm_executor import execute_microvm_backend
 
 settings = get_settings()
@@ -273,7 +274,18 @@ def _resolve_docker_image(request: CodeEvalJobRequest) -> str:
         return request.environment.image_reference.strip()
     if request.environment.freeze_key and request.environment.freeze_key.strip():
         return request.environment.freeze_key.strip()
-    return settings.code_eval_docker_default_image.strip()
+
+    profile_default = get_language_profile(request.language.value).get("docker_image")
+    configured_default = settings.code_eval_docker_default_image.strip()
+    if not configured_default:
+        return str(profile_default)
+
+    # Preserve explicit operator override while still preventing accidental
+    # python-only default usage for compiled languages.
+    if request.language.value != "python" and configured_default == "python:3.11-slim":
+        return str(profile_default)
+
+    return configured_default
 
 
 def _validate_relative_file_map(files: dict[str, str]) -> None:

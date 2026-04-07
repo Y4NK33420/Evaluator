@@ -1,6 +1,8 @@
 """Code evaluator phase-1 APIs: environment versions, approvals, and job lifecycle."""
 
+import hashlib
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -180,6 +182,65 @@ def _validate_microvm_pilot_docker_image_preflight(
     )
 
 
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        while True:
+            chunk = fh.read(1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _environment_artifact_integrity_checks(env_version: CodeEvalEnvironmentVersion) -> dict[str, bool]:
+    spec = env_version.spec_json if isinstance(env_version.spec_json, dict) else {}
+    mode = str(spec.get("mode") or "manifest").strip().lower()
+    strategy = settings.code_eval_microvm_env_build_strategy.strip().lower()
+
+    snapshot_required = (
+        (mode in {"manifest", "lockfile"} and strategy in {"snapshot_validate", "firecracker_snapshot"})
+        or str(env_version.freeze_key or "").startswith("firecracker/")
+        or bool(spec.get("snapshot_vmstate_path") or spec.get("snapshot_mem_path"))
+    )
+    if not snapshot_required:
+        return {"artifact_integrity_checks_passed": True}
+
+    vmstate_path_raw = str(spec.get("snapshot_vmstate_path") or "").strip()
+    mem_path_raw = str(spec.get("snapshot_mem_path") or "").strip()
+    vmstate_sha_expected = str(spec.get("snapshot_vmstate_sha256") or "").strip().lower()
+    mem_sha_expected = str(spec.get("snapshot_mem_sha256") or "").strip().lower()
+
+    vmstate_path_present = bool(vmstate_path_raw)
+    mem_path_present = bool(mem_path_raw)
+    vmstate_sha_present = bool(vmstate_sha_expected)
+    mem_sha_present = bool(mem_sha_expected)
+
+    vmstate_exists = vmstate_path_present and Path(vmstate_path_raw).exists()
+    mem_exists = mem_path_present and Path(mem_path_raw).exists()
+
+    vmstate_sha_matches = False
+    mem_sha_matches = False
+
+    if vmstate_exists and vmstate_sha_present:
+        vmstate_sha_matches = _sha256_file(Path(vmstate_path_raw)).lower() == vmstate_sha_expected
+    if mem_exists and mem_sha_present:
+        mem_sha_matches = _sha256_file(Path(mem_path_raw)).lower() == mem_sha_expected
+
+    checks = {
+        "snapshot_vmstate_path_present": vmstate_path_present,
+        "snapshot_mem_path_present": mem_path_present,
+        "snapshot_vmstate_sha256_present": vmstate_sha_present,
+        "snapshot_mem_sha256_present": mem_sha_present,
+        "snapshot_vmstate_exists": vmstate_exists,
+        "snapshot_mem_exists": mem_exists,
+        "snapshot_vmstate_sha256_matches": vmstate_sha_matches,
+        "snapshot_mem_sha256_matches": mem_sha_matches,
+    }
+    checks["artifact_integrity_checks_passed"] = all(checks.values())
+    return checks
+
+
 @router.get("/runtime/status", response_model=CodeEvalRuntimeStatusOut)
 def code_eval_runtime_status():
     backend = settings.code_eval_execution_backend.strip().lower()
@@ -352,6 +413,7 @@ def validate_environment_publish(
         "assignment_exists_if_bound": assignment_exists,
         "assignment_is_code_if_bound": assignment_is_code,
     }
+    checks.update(_environment_artifact_integrity_checks(env_version))
 
     if _is_microvm_pilot_mode():
         checks.update(_microvm_pilot_policy_checks(env_version.spec_json))

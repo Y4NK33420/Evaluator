@@ -109,4 +109,24 @@ def parse_structured_response(response: object) -> dict:
     if isinstance(text, str) and text.strip():
         return robust_json_loads(text)
 
+    candidates = getattr(response, "candidates", None)
+    if isinstance(candidates, list):
+        fragments: list[str] = []
+        for candidate in candidates:
+            cand_text = getattr(candidate, "text", None)
+            if isinstance(cand_text, str) and cand_text.strip():
+                fragments.append(cand_text)
+
+            content = getattr(candidate, "content", None)
+            parts = getattr(content, "parts", None)
+            if isinstance(parts, list):
+                for part in parts:
+                    part_text = getattr(part, "text", None)
+                    if isinstance(part_text, str) and part_text.strip():
+                        fragments.append(part_text)
+
+        merged = "\n".join(fragment.strip() for fragment in fragments if fragment and fragment.strip())
+        if merged:
+            return robust_json_loads(merged)
+
     raise ValueError("Model response did not include structured JSON output.")

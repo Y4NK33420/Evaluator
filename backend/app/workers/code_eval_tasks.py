@@ -13,6 +13,7 @@ from app.models import CodeEvalAttempt, CodeEvalJob, CodeEvalJobStatus
 from app.services.code_eval.contracts import AttemptResult, CodeEvalJobRequest, CodeEvalJobResult
 from app.services.code_eval.execution_service import execute_code_eval_job
 from app.services.code_eval.quality_service import evaluate_code_quality
+from app.services.code_eval.scoring_service import build_score_breakdown
 from app.services.code_eval.shim_service import (
     analyze_for_retrying_shim,
     build_retry_request_from_shim_decision,
@@ -232,6 +233,9 @@ def run_code_eval_job_task(self, job_id: str):
                         "stage": retry_attempt_result.stage,
                         "shim_used": retry_attempt_result.shim_used,
                         "shim_strategy": shim_decision.get("shim_strategy"),
+                        "shim_reason": shim_decision.get("reason"),
+                        "shim_model": shim_decision.get("model"),
+                        "shim_prompt_hash": shim_decision.get("prompt_hash"),
                         "executor": retry_execution_artifacts.get("executor"),
                         "comparison_mode": retry_execution_artifacts.get("comparison_mode", "strict"),
                     }
@@ -243,15 +247,18 @@ def run_code_eval_job_task(self, job_id: str):
 
         max_score = float(sum(test.weight for test in request.testcases))
         if final_attempt_result.passed:
-            final_score = final_attempt_result.score
             quality_payload = evaluate_code_quality(
                 request,
                 earned_score=final_attempt_result.score,
                 max_score=max_score,
                 execution_artifacts=final_execution_artifacts,
             )
-            if bool(quality_payload.get("applied")):
-                final_score = float(quality_payload.get("adjusted_total_score", final_score))
+            score_breakdown = build_score_breakdown(
+                correctness_score=final_attempt_result.score,
+                max_score=max_score,
+                quality_payload=quality_payload,
+            )
+            final_score = float(score_breakdown.get("total_score", final_attempt_result.score))
 
             final_result = CodeEvalJobResult(
                 job_id=job.id,
@@ -264,12 +271,27 @@ def run_code_eval_job_task(self, job_id: str):
             final_payload = final_result.model_dump(mode="json")
             final_payload["attempt_artifacts"] = attempt_artifacts
             final_payload["quality_evaluation"] = quality_payload
+            final_payload["score_breakdown"] = score_breakdown
             if shim_decision is not None:
                 final_payload["shim_decision"] = shim_decision
             job.final_result_json = final_payload
             job.error_message = None
             _transition(job, CodeEvalJobState.COMPLETED)
         else:
+            failed_quality_payload = {
+                "enabled": False,
+                "applied": False,
+                "reason": "correctness_not_passed",
+                "weight_percent": float(request.quality_evaluation.weight_percent),
+                "mode": request.quality_evaluation.mode.value,
+                "correctness_score": float(final_attempt_result.score),
+                "max_score": max_score,
+            }
+            failed_score_breakdown = build_score_breakdown(
+                correctness_score=final_attempt_result.score,
+                max_score=max_score,
+                quality_payload=failed_quality_payload,
+            )
             job.final_result_json = {
                 "job_id": job.id,
                 "submission_id": job.submission_id,
@@ -277,6 +299,8 @@ def run_code_eval_job_task(self, job_id: str):
                 "attempts": [attempt.model_dump(mode="json") for attempt in attempts_for_result],
                 "attempt_artifacts": attempt_artifacts,
                 "shim_decision": shim_decision,
+                "quality_evaluation": failed_quality_payload,
+                "score_breakdown": failed_score_breakdown,
             }
             job.error_message = final_attempt_result.stderr or "Code evaluation failed."
             _transition(job, CodeEvalJobState.FAILED)

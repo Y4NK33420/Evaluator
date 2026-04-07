@@ -7,6 +7,8 @@ Supports two retry strategies:
 
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -33,6 +35,16 @@ def _collapse_whitespace(value: str | None) -> str:
     if value is None:
         return ""
     return " ".join(str(value).split())
+
+
+def _build_source_signal_map(source_files: dict[str, str]) -> dict[str, bool]:
+    combined = "\n".join(str(content) for content in source_files.values() if isinstance(content, str))
+    lower = combined.lower()
+    return {
+        "uses_stdin": ("sys.stdin" in combined) or ("input(" in combined),
+        "uses_argv": "sys.argv" in combined,
+        "uses_file_input": ("open(" in combined) and (".txt" in lower),
+    }
 
 
 def _parse_failure_tokens(reason: str | None) -> set[str]:
@@ -66,6 +78,30 @@ def _trim_source_files_for_prompt(source_files: dict[str, str]) -> dict[str, str
     return trimmed
 
 
+def _stable_hash_payload(payload: dict[str, Any]) -> str:
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _all_cases_interface_like(failed_cases: list[dict[str, Any]]) -> bool:
+    if not failed_cases:
+        return False
+    allowed = {"potential_interface_io_mismatch", "whitespace_only_interface_mismatch"}
+    return all(str(case.get("decision_reason") or "") in allowed for case in failed_cases)
+
+
+def _inject_stdin_to_argv_adapter(source: str) -> str:
+    adapter = (
+        "import sys\n"
+        "# AI-shim fallback adapter: map stdin to argv[1] when program expects CLI args.\n"
+        "if len(sys.argv) <= 1:\n"
+        "    _shim_stdin = sys.stdin.read()\n"
+        "    if _shim_stdin is not None and _shim_stdin.strip():\n"
+        "        sys.argv = [sys.argv[0], _shim_stdin.strip()]\n\n"
+    )
+    return adapter + source
+
+
 def _deterministic_whitespace_decision(
     request: CodeEvalJobRequest,
     raw_execution_artifacts: dict[str, Any],
@@ -92,6 +128,7 @@ def _deterministic_whitespace_decision(
         }
 
     spec_by_id = {case.testcase_id: case for case in request.testcases}
+    source_signals = _build_source_signal_map(request.source_files)
     failed_cases: list[dict[str, Any]] = []
 
     for case_result in testcases:
@@ -149,7 +186,20 @@ def _deterministic_whitespace_decision(
             case_audit["eligible"] = True
             case_audit["decision_reason"] = "whitespace_only_interface_mismatch"
         else:
-            case_audit["decision_reason"] = "output_difference_not_whitespace_only"
+            likely_io_mismatch = False
+            if spec.input_mode.value == "stdin":
+                stdin_non_empty = bool(_collapse_whitespace(spec.stdin))
+                stdout_blank = not bool(_collapse_whitespace(case_result.get("stdout")))
+                if stdin_non_empty and stdout_blank and not source_signals["uses_stdin"] and (
+                    source_signals["uses_argv"] or source_signals["uses_file_input"]
+                ):
+                    likely_io_mismatch = True
+
+            if likely_io_mismatch:
+                case_audit["decision_reason"] = "potential_interface_io_mismatch"
+                case_audit["io_mismatch_signals"] = source_signals
+            else:
+                case_audit["decision_reason"] = "output_difference_not_whitespace_only"
 
         failed_cases.append(case_audit)
 
@@ -188,6 +238,36 @@ def _deterministic_whitespace_decision(
         "failed_testcases": failed_cases,
         "retry_count": 1,
     }
+
+
+def _build_testcase_contracts(
+    request: CodeEvalJobRequest,
+    failed_cases: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    by_id = {case.testcase_id: case for case in request.testcases}
+    contracts: list[dict[str, Any]] = []
+    for failed in failed_cases:
+        case_id = str(failed.get("testcase_id") or "")
+        spec = by_id.get(case_id)
+        if spec is None:
+            continue
+        contracts.append(
+            {
+                "testcase_id": case_id,
+                "input_mode": spec.input_mode.value,
+                "stdin": spec.stdin,
+                "argv": list(spec.argv),
+                "files": dict(spec.files),
+                "expected_stdout": spec.expected_stdout,
+                "expected_stderr": spec.expected_stderr,
+                "expected_exit_code": spec.expected_exit_code,
+                "raw_stdout": failed.get("stdout"),
+                "raw_stderr": failed.get("stderr"),
+                "failure_tokens": failed.get("failure_tokens") or [],
+                "decision_reason": failed.get("decision_reason"),
+            }
+        )
+    return contracts
 
 
 def _ai_generated_patch_decision(
@@ -235,30 +315,46 @@ def _ai_generated_patch_decision(
     }
 
     prompt_payload = {
-        "task": "Classify if failure is a fixable interface mismatch and propose a safe patch",
+        "task": "Classify whether failure is a fixable interface mismatch and propose a safe patch",
         "constraints": [
             "Only patch Python files",
             "Do not change grading logic expectations",
             "Prefer minimal wrappers/adapters",
+            "Treat stdin/argv/file-mode mismatch as interface-level and fixable when contracts indicate I/O adaptation",
+            "When stdin testcases are non-empty and observed stdout is blank while source uses argv/file input, classify as fixable interface mismatch",
+            "Do not mark as logic bug solely from stdout mismatch without evaluating testcase contracts",
             "No network/file system side effects outside working directory",
         ],
         "entrypoint": request.entrypoint,
         "source_files": _trim_source_files_for_prompt(request.source_files),
         "failed_testcases": failed_cases[:5],
+        "testcase_contracts": _build_testcase_contracts(request, failed_cases)[:5],
         "request_quota": request.quota.model_dump(mode="json"),
     }
+    model_name = settings.resolve_code_healing_model()
+    prompt_hash = _stable_hash_payload(
+        {
+            "model": model_name,
+            "schema": schema,
+            "system_instruction": (
+                "You are a code-eval healing agent. Only fix interface mismatches such as stdin/argv/file-mode "
+                "adaptation and minor OCR noise. Never attempt to fix student logic."
+            ),
+            "prompt_payload": prompt_payload,
+        }
+    )
 
     config = build_structured_json_config(
         response_schema=schema,
         system_instruction=(
             "You are a code-eval healing agent. Only fix interface mismatches such as stdin/argv/file-mode "
-            "adaptation and minor OCR noise. Never attempt to fix student logic."
+            "adaptation and minor OCR noise. Never attempt to fix student logic. "
+            "When testcase contracts indicate expected I/O differs from program wiring, return fixable=true with a minimal adapter patch."
         ),
         temperature=0.0,
         max_output_tokens=4096,
     )
 
-    model_name = settings.resolve_code_healing_model()
     try:
         model_output = generate_structured_json_with_retry(
             model_name=model_name,
@@ -275,6 +371,8 @@ def _ai_generated_patch_decision(
             "analyzed_at": _now_iso(),
             "failed_testcases": failed_cases,
             "ai_error": str(exc),
+            "model": model_name,
+            "prompt_hash": prompt_hash,
         }
 
     fixable = bool(model_output.get("fixable"))
@@ -295,6 +393,8 @@ def _ai_generated_patch_decision(
                     "shim_source": None,
                     "analyzed_at": _now_iso(),
                     "failed_testcases": failed_cases,
+                    "model": model_name,
+                    "prompt_hash": prompt_hash,
                 }
             updated_files[rel_path] = str(content)
 
@@ -307,18 +407,42 @@ def _ai_generated_patch_decision(
             "analyzed_at": _now_iso(),
             "failed_testcases": failed_cases,
             "ai_reason": reason,
+            "model": model_name,
+            "prompt_hash": prompt_hash,
         }
 
     if not updated_files:
-        return {
-            "eligible": False,
-            "reason": "ai_shim_fixable_without_patch_rejected",
-            "comparison_mode": None,
-            "shim_source": None,
-            "analyzed_at": _now_iso(),
-            "failed_testcases": failed_cases,
-            "ai_reason": reason,
-        }
+        if _all_cases_interface_like(failed_cases):
+            original_entrypoint_source = request.source_files.get(request.entrypoint)
+            if isinstance(original_entrypoint_source, str) and original_entrypoint_source.strip():
+                updated_files = {
+                    request.entrypoint: _inject_stdin_to_argv_adapter(original_entrypoint_source)
+                }
+                reason = f"{reason}|fallback_adapter_patch"
+            else:
+                return {
+                    "eligible": False,
+                    "reason": "ai_shim_fixable_without_patch_rejected",
+                    "comparison_mode": None,
+                    "shim_source": None,
+                    "analyzed_at": _now_iso(),
+                    "failed_testcases": failed_cases,
+                    "ai_reason": reason,
+                    "model": model_name,
+                    "prompt_hash": prompt_hash,
+                }
+        else:
+            return {
+                "eligible": False,
+                "reason": "ai_shim_fixable_without_patch_rejected",
+                "comparison_mode": None,
+                "shim_source": None,
+                "analyzed_at": _now_iso(),
+                "failed_testcases": failed_cases,
+                "ai_reason": reason,
+                "model": model_name,
+                "prompt_hash": prompt_hash,
+            }
 
     if not _safe_relative_path(updated_entrypoint):
         updated_entrypoint = request.entrypoint
@@ -339,6 +463,15 @@ def _ai_generated_patch_decision(
         "patched_entrypoint": updated_entrypoint,
         "retry_count": 1,
         "ai_reason": reason,
+        "model": model_name,
+        "prompt_hash": prompt_hash,
+        "decision": {
+            "fixable": fixable,
+            "comparison_mode": comparison_mode,
+            "confidence": model_output.get("confidence"),
+            "updated_entrypoint": updated_entrypoint,
+            "patched_files_count": len(updated_files),
+        },
     }
 
 
