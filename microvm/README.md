@@ -34,6 +34,7 @@ Quick preflight check (recommended before bring-up):
 
 If you are developing on Windows and deploying Firecracker later on Linux, follow:
 - `microvm/LINUX_DEPLOYMENT_GUIDE.md`
+- `microvm/CODE_EVAL_OPS_RUNBOOK.md`
 
 ## Bring-up (Linux host)
 
