@@ -118,7 +118,11 @@ class Assignment(Base):
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     published_by: Mapped[str | None] = mapped_column(String(256), nullable=True)
     published_environment_version_id: Mapped[str | None] = mapped_column(
-        ForeignKey("code_eval_environment_versions.id"),
+        ForeignKey(
+            "code_eval_environment_versions.id",
+            name="fk_assignments_published_env_version_id",
+            use_alter=True,
+        ),
         nullable=True,
     )
     created_at:    Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
