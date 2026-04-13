@@ -1,0 +1,35 @@
+FROM python:3.11-slim
+
+# ── System dependencies ───────────────────────────────────────────────────────
+# Base deps (shared with backend image)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libpq-dev \
+        libgl1 \
+        libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Code-eval compilers (baked in permanently) ───────────────────────────────
+# Required for local execution backend: C, C++, Java.
+# These are NOT in the base backend image — only the worker needs them.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc \
+        g++ \
+        default-jdk-headless \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY backend/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+COPY backend/app    /app/app
+COPY backend/alembic.ini /app/alembic.ini
+COPY backend/alembic     /app/alembic
+
+ENV PYTHONPATH=/app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Default: code-eval worker with 4 concurrent slots
+CMD ["celery", "-A", "app.workers.celery_app", "worker", \
+     "-Q", "code_eval_queue", "-c", "4", "--loglevel=info"]

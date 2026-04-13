@@ -58,8 +58,10 @@ services:
       - "8080:8080"
     volumes:
       - uploads:/data/uploads
-      - ./backend/app/services/credentials.json:/app/app/services/credentials.json:ro
-      - ./backend/app/services/token.json:/app/app/services/token.json
+      # Classroom OAuth credentials — mount the whole directory so Docker
+      # doesn't create stub directories for individual files.
+      # Place credentials.json here before first run. token.json is auto-generated.
+      - ./backend/app/services/google_auth:/app/app/services/google_auth
     environment:
       - DATABASE_URL=postgresql+psycopg2://amgs:amgs@postgres:5432/amgs
       - REDIS_URL=redis://redis:6379/0
@@ -196,12 +198,15 @@ services:
 
   # ── Celery Code-Eval Worker (execution lifecycle lane) ─────────────────────
   worker-code-eval:
-    image: amgs-backend:latest
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.worker
+    image: amgs-worker-code-eval:latest
     container_name: amgs-worker-code-eval
     restart: unless-stopped
     command: >
       celery -A app.workers.celery_app worker
-        -Q code_eval_queue -c 2 --loglevel=info
+        -Q code_eval_queue -c 4 --loglevel=info
     environment:
       - DATABASE_URL=postgresql+psycopg2://amgs:amgs@postgres:5432/amgs
       - REDIS_URL=redis://redis:6379/0
@@ -252,6 +257,7 @@ services:
       - CODE_EVAL_MICROVM_ENV_BUILD_SNAPSHOT_NAME_PREFIX=${CODE_EVAL_MICROVM_ENV_BUILD_SNAPSHOT_NAME_PREFIX:-codeeval}
       - CODE_EVAL_ENABLE_SHIM_RETRY=${CODE_EVAL_ENABLE_SHIM_RETRY:-true}
     volumes:
+      - uploads:/data/uploads
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       postgres:
@@ -260,6 +266,7 @@ services:
         condition: service_healthy
 
   # ── Code-Eval Runtime Bridge (optional reference service) ─────────────────
+
   runtime-bridge:
     build:
       context: .

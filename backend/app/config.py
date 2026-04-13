@@ -43,8 +43,10 @@ class Settings(BaseSettings):
     model_retry_max_backoff_seconds: float = 12.0
 
     # ── Google Classroom OAuth ────────────────────────────────────────────────
-    google_credentials_file: str = "app/services/credentials.json"
-    google_token_file:       str = "app/services/token.json"
+    google_credentials_file: str = "app/services/google_auth/credentials.json"
+    google_token_file:       str = "app/services/google_auth/token.json"
+    # Default course to use when not specified per-request
+    google_classroom_default_course_id: str = ""
 
     # ── File storage ──────────────────────────────────────────────────────────
     uploads_dir: str = "/data/uploads"
