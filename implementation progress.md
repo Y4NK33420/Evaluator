@@ -529,11 +529,12 @@ Done now:
 Next recommended steps:
 1. ~~**Bake compilers into the worker Dockerfile**~~ ✅ Done — gcc 14.2, g++ 14.2, javac 21 baked in.
 2. ~~**Google Classroom integration**~~ ✅ Done — full ingest → grade → sync-draft → release loop verified live.
-3. Keep daily dev validation on Windows in default backend mode (`local`) and avoid forcing `firecracker_vsock` on Docker Desktop hosts.
-4. Add/maintain Linux KVM staging validation lane using `microvm/scripts/linux_host_preflight.sh` + `microvm/scripts/firecracker_smoke.sh` before release.
-5. Resolve the `SAWarning` FK cycle (`assignments` ↔ `code_eval_environment_versions`) by applying `use_alter=True` to the FK in `004_code_eval_grade_backref.py`.
-6. Implement Frontend Classroom UI — sync controls, submission triage list, grade review dashboard.
-7. Production deployment — push `amgs-worker-code-eval:latest` to registry, configure `google_auth/` volume on server, CI/CD pipeline.
+3. ~~**Resolve SAWarning FK cycle**~~ ✅ Done — `use_alter=True` on `assignments.published_environment_version_id`.
+4. ~~**Credential gitignore hardening**~~ ✅ Done — `google_auth/*.json` blocked at all path patterns.
+5. Keep daily dev validation on Windows in default backend mode (`local`) and avoid forcing `firecracker_vsock` on Docker Desktop hosts.
+6. Add/maintain Linux KVM staging validation lane using `microvm/scripts/linux_host_preflight.sh` + `microvm/scripts/firecracker_smoke.sh` before release.
+7. Implement Frontend Classroom UI — sync controls, submission triage list, grade review dashboard.
+8. Production deployment — push `amgs-worker-code-eval:latest` to registry, configure `google_auth/` volume on server, CI/CD pipeline.
 
 ## 8) Operational Notes for Future Sessions
 
@@ -675,4 +676,63 @@ RUN apt-get update -qq && \
 | Rubric creation used wrong path (`POST /rubrics` vs `POST /rubrics/{assignment_id}`) | `verify_stream1_stream2.py` test | Fixed path + `content_json` with coding scoring policy |
 | Job submission used flat body instead of nested `request` object | `verify_stream1_stream2.py` test | Matched schema from `run_rigorous.py` |
 
+---
+
+### 2026-04-14 — Credential Security Hardening + FK Cycle Resolution
+
+#### Overview
+
+Post-push security audit and architectural debt cleanup. No functional changes; focused on ensuring nothing sensitive can reach version control and eliminating the SQLAlchemy startup warning permanently.
+
+**Commits**: `be828c0` — pushed to `origin/main` (`916b72a..be828c0`)  
+**Repo state**: 3 sessions committed and pushed, 7 total commits, 35,188 LOC across 196 files.
+
+---
+
+#### Credential Audit
+
+Scanned all 3 unpushed commits (`767c2fa`, `a353bfd`, `be828c0`) for:
+- Literal OAuth values (`client_secret`, `refresh_token`, `access_token`, GCP client ID `56451059812-…`)
+- Key patterns (`BEGIN PRIVATE KEY`, `AIza…` API key format)
+
+**Result**: Zero secrets in git history. Code only contains dictionary key references (e.g. `data.get("client_secret")`), not values.
+
+The `google_auth/` directory containing `credentials.json` and `token.json` was always untracked (confirmed via `git ls-files`). The old per-file ignores in `.gitignore` already covered the original paths; the new paths were not yet protected.
+
+#### `.gitignore` Changes
+
+Added four new ignore rules:
+```gitignore
+# Google OAuth credentials — never commit actual secrets
+backend/app/services/google_auth/credentials.json
+backend/app/services/google_auth/token.json
+# Catch any misdirected credential files anywhere in the tree
+**/google_auth/credentials.json
+**/google_auth/token.json
+```
+
+Verified with `git check-ignore -v` — all 4 target paths confirmed matched and ignored.
+
+---
+
+#### FK Cycle Fix
+
+**What it was**: `assignments.published_environment_version_id` → FK → `code_eval_environment_versions.id` while `code_eval_environment_versions.assignment_id` → FK → `assignments.id`. This creates a circular FK dependency between two tables. SQLAlchemy emitted `SAWarning: Cannot correctly sort tables` on every startup because `create_all()` and Alembic autogenerate couldn't determine which table to create first.
+
+**Why `use_alter` is the right fix**: `use_alter=True` instructs SQLAlchemy to omit the FK from the `CREATE TABLE` statement and instead emit a deferred `ALTER TABLE ADD CONSTRAINT` after both tables have been created. This is exactly the semantics PostgreSQL requires for circular FKs. No schema change is needed at the database level — the constraint already exists; only the ORM metadata ordering changes.
+
+**The fix** (`backend/app/models/__init__.py`):
+```python
+# Before
+ForeignKey("code_eval_environment_versions.id")
+
+# After
+ForeignKey(
+    "code_eval_environment_versions.id",
+    name="fk_assignments_published_env_version_id",
+    use_alter=True,
+)
+```
+
+**Verification**: Backend restarted cleanly — `Application startup complete.` with zero `SAWarning` or `ERROR` lines in startup logs. Health check confirmed `{"status":"ok"}`.
 
