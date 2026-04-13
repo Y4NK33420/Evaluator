@@ -1,0 +1,39 @@
+{
+  "test": "UC19: API 404/422/409 robustness",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "nonexistent_job_status": 404
+    },
+    {
+      "nonexistent_grade_status": 404
+    },
+    {
+      "nonexistent_approval_status": 404
+    },
+    {
+      "runtime_status_response": {
+        "execution_backend": "local",
+        "shim_retry_enabled": true,
+        "ai_shim_generation_enabled": true,
+        "microvm": {
+          "enabled": false,
+          "force_no_network": true,
+          "serial_lock_file": "/tmp/codeeval-firecracker/firecracker-vsock.lock",
+          "runtime_mode": "pending",
+          "allow_fallback": true,
+          "fallback_backend": "docker",
+          "runtime_bridge_url_configured": false,
+          "runtime_bridge_timeout_seconds": 30.0,
+          "environment_build_strategy": "deterministic_key",
+          "firecracker_snapshot_configured": false,
+          "firecracker_vsock_port": 7000,
+          "firecracker_preflight_ready": false,
+          "firecracker_preflight_issues": [],
+          "pilot_policy_required": false,
+          "pilot_policy_required_fields": []
+        }
+      }
+    }
+  ]
+}

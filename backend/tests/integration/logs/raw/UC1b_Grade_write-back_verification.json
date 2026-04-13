@@ -1,0 +1,161 @@
+{
+  "test": "UC1b: Grade write-back verification",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "poll_result": {
+        "id": "34309bd8-02c5-4c31-9d86-da22bf76a0da",
+        "assignment_id": "c4724cee-cc34-444d-97e9-02ab6937c445",
+        "submission_id": "b5facba3-3752-4711-b0e0-5c66a385d8e6",
+        "environment_version_id": "998a01a5-4547-4616-836f-17a3a60c36f0",
+        "status": "COMPLETED",
+        "language": "python",
+        "entrypoint": "solution.py",
+        "regrade_policy": "new_only_unless_explicit",
+        "explicit_regrade": false,
+        "attempt_count": 1,
+        "final_result_json": {
+          "job_id": "34309bd8-02c5-4c31-9d86-da22bf76a0da",
+          "submission_id": "b5facba3-3752-4711-b0e0-5c66a385d8e6",
+          "total_score": 1.0,
+          "max_score": 1.0,
+          "status": "COMPLETED",
+          "attempts": [
+            {
+              "stage": "EXECUTING_RAW",
+              "passed": true,
+              "exit_code": 0,
+              "stdout": "Passed 1/1 testcases.",
+              "stderr": "",
+              "score": 1.0,
+              "shim_used": false,
+              "shim_source": null
+            }
+          ],
+          "attempt_artifacts": [
+            {
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "shim_used": false,
+              "executor": "local_subprocess",
+              "error_code": null,
+              "comparison_mode": "strict"
+            }
+          ],
+          "quality_evaluation": {
+            "enabled": false,
+            "applied": false,
+            "reason": "quality_mode_disabled_or_weight_zero",
+            "weight_percent": 0.0,
+            "mode": "disabled",
+            "correctness_score": 1.0,
+            "max_score": 1.0
+          },
+          "score_breakdown": {
+            "correctness_score": 1.0,
+            "max_score": 1.0,
+            "correctness_percent": 100.0,
+            "quality_applied": false,
+            "quality_mode": "disabled",
+            "quality_weight_percent": 0.0,
+            "quality_score": null,
+            "total_score": 1.0,
+            "total_percent": 100.0
+          }
+        },
+        "error_message": null,
+        "queued_at": "2026-04-13T20:23:05.157727Z",
+        "started_at": "2026-04-13T20:23:05.170962Z",
+        "finished_at": "2026-04-13T20:23:05.203657Z",
+        "created_at": "2026-04-13T20:23:05.157731Z",
+        "updated_at": "2026-04-13T20:23:05.204113Z",
+        "attempts": [
+          {
+            "id": "aa3bc560-2521-4d98-ba3a-3e4dd0429ad1",
+            "job_id": "34309bd8-02c5-4c31-9d86-da22bf76a0da",
+            "attempt_index": 1,
+            "stage": "EXECUTING_RAW",
+            "passed": true,
+            "exit_code": 0,
+            "score": 1.0,
+            "stdout": "Passed 1/1 testcases.",
+            "stderr": "",
+            "shim_used": false,
+            "shim_source": null,
+            "artifacts_json": {
+              "executor": "local_subprocess",
+              "enabled": true,
+              "language": "python",
+              "comparison_mode": "strict",
+              "shim_used": false,
+              "shim_source": null,
+              "compile_flags": [],
+              "link_flags": [],
+              "run_flags": [],
+              "network_enforced": false,
+              "max_score": 1.0,
+              "earned_score": 1.0,
+              "testcases": [
+                {
+                  "testcase_id": "tc1",
+                  "passed": true,
+                  "weight": 1.0,
+                  "awarded_score": 1.0,
+                  "exit_code": 0,
+                  "stdout": "49\n",
+                  "stderr": "",
+                  "failure_reason": null,
+                  "output_truncated": false
+                }
+              ],
+              "warnings": [
+                "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+              ]
+            },
+            "started_at": "2026-04-13T20:23:05.174013Z",
+            "finished_at": "2026-04-13T20:23:05.194946Z",
+            "created_at": "2026-04-13T20:23:05.196561Z"
+          }
+        ]
+      }
+    },
+    {
+      "grade_response_status": 200,
+      "grade_body": {
+        "grade_id": "d808ae2f-1a35-4c04-a653-b528f8d432a4",
+        "submission_id": "b5facba3-3752-4711-b0e0-5c66a385d8e6",
+        "total_score": 1.0,
+        "source": "code_eval",
+        "graded_at": "2026-04-13T20:23:05.201622+00:00",
+        "classroom_status": "not_synced",
+        "breakdown_json": {
+          "source": "code_eval",
+          "job_id": "34309bd8-02c5-4c31-9d86-da22bf76a0da",
+          "assignment_id": "c4724cee-cc34-444d-97e9-02ab6937c445",
+          "score_breakdown": {
+            "correctness_score": 1.0,
+            "max_score": 1.0,
+            "correctness_percent": 100.0,
+            "quality_applied": false,
+            "quality_mode": "disabled",
+            "quality_weight_percent": 0.0,
+            "quality_score": null,
+            "total_score": 1.0,
+            "total_percent": 100.0
+          },
+          "quality_evaluation": {
+            "enabled": false,
+            "applied": false,
+            "reason": "quality_mode_disabled_or_weight_zero",
+            "weight_percent": 0.0,
+            "mode": "disabled",
+            "correctness_score": 1.0,
+            "max_score": 1.0
+          },
+          "attempt_count": 1,
+          "max_score": 1.0
+        }
+      }
+    }
+  ]
+}

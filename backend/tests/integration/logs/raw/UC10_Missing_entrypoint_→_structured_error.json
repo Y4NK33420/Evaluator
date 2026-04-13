@@ -1,0 +1,183 @@
+{
+  "test": "UC10: Missing entrypoint \u2192 structured error",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "raw_result": {
+        "id": "8a48f815-7ac2-48fb-b085-48d9580e84bc",
+        "assignment_id": "a20f8add-30c0-42e1-a45f-47c9853d50b2",
+        "submission_id": "b411fabb-8aea-4ecf-bdb7-78c8fba077c2",
+        "environment_version_id": "b2435b60-c2e9-4f79-9754-c6551cb0eeb9",
+        "status": "FAILED",
+        "language": "python",
+        "entrypoint": "main.py",
+        "regrade_policy": "new_only_unless_explicit",
+        "explicit_regrade": false,
+        "attempt_count": 1,
+        "final_result_json": {
+          "job_id": "8a48f815-7ac2-48fb-b085-48d9580e84bc",
+          "submission_id": "b411fabb-8aea-4ecf-bdb7-78c8fba077c2",
+          "status": "FAILED",
+          "error_code": "Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_2",
+          "attempts": [
+            {
+              "stage": "EXECUTING_RAW",
+              "passed": false,
+              "exit_code": 1,
+              "stdout": "Passed 0/1 testcases.",
+              "stderr": "Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_2|stdout_mismatch",
+              "score": 0.0,
+              "shim_used": false,
+              "shim_source": null
+            }
+          ],
+          "attempt_artifacts": [
+            {
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "shim_used": false,
+              "executor": "local_subprocess",
+              "error_code": null,
+              "comparison_mode": "strict"
+            }
+          ],
+          "shim_decision": {
+            "eligible": false,
+            "reason": "detected_non_shimmable_failure|ai_shim_model_error",
+            "comparison_mode": null,
+            "shim_source": null,
+            "analyzed_at": "2026-04-13T20:23:56.364748+00:00",
+            "failed_testcases": [
+              {
+                "testcase_id": "tc1",
+                "failure_tokens": [
+                  "exit_code_expected_0_got_2",
+                  "stdout_mismatch"
+                ],
+                "eligible": false,
+                "decision_reason": "exit_code_mismatch",
+                "stdout": "",
+                "stderr": "/usr/local/bin/python3.11: can't open file '/tmp/code_eval_local_iiairx1m/main.py': [Errno 2] No such file or directory\n"
+              }
+            ],
+            "ai_decision": {
+              "eligible": false,
+              "reason": "ai_shim_model_error",
+              "comparison_mode": null,
+              "shim_source": null,
+              "analyzed_at": "2026-04-13T20:23:56.364728+00:00",
+              "failed_testcases": [
+                {
+                  "testcase_id": "tc1",
+                  "failure_tokens": [
+                    "exit_code_expected_0_got_2",
+                    "stdout_mismatch"
+                  ],
+                  "eligible": false,
+                  "decision_reason": "exit_code_mismatch",
+                  "stdout": "",
+                  "stderr": "/usr/local/bin/python3.11: can't open file '/tmp/code_eval_local_iiairx1m/main.py': [Errno 2] No such file or directory\n"
+                }
+              ],
+              "ai_error": "Code-eval AI shim analysis (python) temporarily unavailable. The model service is currently overloaded or rate-limited. Please retry in a few minutes.",
+              "model": "gemini-3.1-flash-lite-preview",
+              "prompt_hash": "77a7afe5bdf52bd2c271dfefa9d70ac4a237e2562678a3046a67ce93b1085206",
+              "shim_warning": {
+                "attempted": true,
+                "reason": "model_unavailable",
+                "error": "Code-eval AI shim analysis (python) temporarily unavailable. The model service is currently overloaded or rate-limited. Please retry in a few minutes.",
+                "language": "python"
+              }
+            },
+            "shim_warning": {
+              "attempted": true,
+              "reason": "model_unavailable",
+              "error": "Code-eval AI shim analysis (python) temporarily unavailable. The model service is currently overloaded or rate-limited. Please retry in a few minutes.",
+              "language": "python"
+            }
+          },
+          "quality_evaluation": {
+            "enabled": false,
+            "applied": false,
+            "reason": "correctness_not_passed",
+            "weight_percent": 0.0,
+            "mode": "disabled",
+            "correctness_score": 0.0,
+            "max_score": 1.0
+          },
+          "score_breakdown": {
+            "correctness_score": 0.0,
+            "max_score": 1.0,
+            "correctness_percent": 0.0,
+            "quality_applied": false,
+            "quality_mode": "disabled",
+            "quality_weight_percent": 0.0,
+            "quality_score": null,
+            "total_score": 0.0,
+            "total_percent": 0.0
+          },
+          "shim_warning": {
+            "attempted": true,
+            "reason": "model_unavailable",
+            "error": "Code-eval AI shim analysis (python) temporarily unavailable. The model service is currently overloaded or rate-limited. Please retry in a few minutes.",
+            "language": "python"
+          }
+        },
+        "error_message": "[Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_2] Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_2|stdout_mismatch",
+        "queued_at": "2026-04-13T20:23:49.777744Z",
+        "started_at": "2026-04-13T20:23:49.795322Z",
+        "finished_at": "2026-04-13T20:23:56.372429Z",
+        "created_at": "2026-04-13T20:23:49.777750Z",
+        "updated_at": "2026-04-13T20:23:56.373438Z",
+        "attempts": [
+          {
+            "id": "81c1769b-f2b5-43d8-9fe6-a2c4bbc39e00",
+            "job_id": "8a48f815-7ac2-48fb-b085-48d9580e84bc",
+            "attempt_index": 1,
+            "stage": "EXECUTING_RAW",
+            "passed": false,
+            "exit_code": 1,
+            "score": 0.0,
+            "stdout": "Passed 0/1 testcases.",
+            "stderr": "Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_2|stdout_mismatch",
+            "shim_used": false,
+            "shim_source": null,
+            "artifacts_json": {
+              "executor": "local_subprocess",
+              "enabled": true,
+              "language": "python",
+              "comparison_mode": "strict",
+              "shim_used": false,
+              "shim_source": null,
+              "compile_flags": [],
+              "link_flags": [],
+              "run_flags": [],
+              "network_enforced": false,
+              "max_score": 1.0,
+              "earned_score": 0.0,
+              "testcases": [
+                {
+                  "testcase_id": "tc1",
+                  "passed": false,
+                  "weight": 1.0,
+                  "awarded_score": 0.0,
+                  "exit_code": 2,
+                  "stdout": "",
+                  "stderr": "/usr/local/bin/python3.11: can't open file '/tmp/code_eval_local_iiairx1m/main.py': [Errno 2] No such file or directory\n",
+                  "failure_reason": "exit_code_expected_0_got_2|stdout_mismatch",
+                  "output_truncated": false
+                }
+              ],
+              "warnings": [
+                "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+              ]
+            },
+            "started_at": "2026-04-13T20:23:49.799444Z",
+            "finished_at": "2026-04-13T20:23:49.818242Z",
+            "created_at": "2026-04-13T20:23:49.819485Z"
+          }
+        ]
+      }
+    }
+  ]
+}

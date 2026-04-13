@@ -1,0 +1,355 @@
+{
+  "test": "UC18: AI shim verifies real Gemini (no mock)",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "runtime_status": {
+        "execution_backend": "local",
+        "shim_retry_enabled": true,
+        "ai_shim_generation_enabled": true,
+        "microvm": {
+          "enabled": false,
+          "force_no_network": true,
+          "serial_lock_file": "/tmp/codeeval-firecracker/firecracker-vsock.lock",
+          "runtime_mode": "pending",
+          "allow_fallback": true,
+          "fallback_backend": "docker",
+          "runtime_bridge_url_configured": false,
+          "runtime_bridge_timeout_seconds": 30.0,
+          "environment_build_strategy": "deterministic_key",
+          "firecracker_snapshot_configured": false,
+          "firecracker_vsock_port": 7000,
+          "firecracker_preflight_ready": false,
+          "firecracker_preflight_issues": [],
+          "pilot_policy_required": false,
+          "pilot_policy_required_fields": []
+        }
+      }
+    },
+    {
+      "shim_enabled": true,
+      "shim_retry": true
+    },
+    {
+      "raw_result": {
+        "id": "a48d5619-03ba-4a4e-b87b-5a913aa2e58a",
+        "assignment_id": "d49208f1-8f7d-4a65-9a88-029123b81cdc",
+        "submission_id": "1cc935fb-5c49-459c-837d-59e645de2cff",
+        "environment_version_id": "4172d7d2-bfaa-4c20-b9ff-a29518d0063a",
+        "status": "FAILED",
+        "language": "python",
+        "entrypoint": "solution.py",
+        "regrade_policy": "new_only_unless_explicit",
+        "explicit_regrade": false,
+        "attempt_count": 1,
+        "final_result_json": {
+          "job_id": "a48d5619-03ba-4a4e-b87b-5a913aa2e58a",
+          "submission_id": "1cc935fb-5c49-459c-837d-59e645de2cff",
+          "status": "FAILED",
+          "error_code": "Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1",
+          "attempts": [
+            {
+              "stage": "EXECUTING_RAW",
+              "passed": false,
+              "exit_code": 1,
+              "stdout": "Passed 0/1 testcases.",
+              "stderr": "Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1|stdout_mismatch",
+              "score": 0.0,
+              "shim_used": false,
+              "shim_source": null
+            }
+          ],
+          "attempt_artifacts": [
+            {
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "shim_used": false,
+              "executor": "local_subprocess",
+              "error_code": null,
+              "comparison_mode": "strict"
+            }
+          ],
+          "shim_decision": {
+            "eligible": false,
+            "reason": "detected_non_shimmable_failure|ai_shim_fixable_without_patch_rejected",
+            "comparison_mode": null,
+            "shim_source": null,
+            "analyzed_at": "2026-04-13T20:24:25.439293+00:00",
+            "failed_testcases": [
+              {
+                "testcase_id": "tc1",
+                "failure_tokens": [
+                  "exit_code_expected_0_got_1",
+                  "stdout_mismatch"
+                ],
+                "eligible": false,
+                "decision_reason": "exit_code_mismatch",
+                "stdout": "",
+                "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_l_h2xo4g/solution.py\", line 3, in <module>\n    x = int(sys.argv[1])\n            ~~~~~~~~^^^\nIndexError: list index out of range\n"
+              }
+            ],
+            "ai_decision": {
+              "eligible": false,
+              "reason": "ai_shim_fixable_without_patch_rejected",
+              "comparison_mode": null,
+              "shim_source": null,
+              "analyzed_at": "2026-04-13T20:24:25.439264+00:00",
+              "failed_testcases": [
+                {
+                  "testcase_id": "tc1",
+                  "failure_tokens": [
+                    "exit_code_expected_0_got_1",
+                    "stdout_mismatch"
+                  ],
+                  "eligible": false,
+                  "decision_reason": "exit_code_mismatch",
+                  "stdout": "",
+                  "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_l_h2xo4g/solution.py\", line 3, in <module>\n    x = int(sys.argv[1])\n            ~~~~~~~~^^^\nIndexError: list index out of range\n"
+                }
+              ],
+              "ai_reason": "The program expects input via command line arguments (sys.argv), but the test harness provides input via stdin. I will patch the script to read from stdin if argv is insufficient.",
+              "model": "gemini-3.1-flash-lite-preview",
+              "prompt_hash": "b58f62bf93c404651ee868e4c033961fe0bbd0037dad65b7b93c7eaed4449af1"
+            }
+          },
+          "quality_evaluation": {
+            "enabled": false,
+            "applied": false,
+            "reason": "correctness_not_passed",
+            "weight_percent": 0.0,
+            "mode": "disabled",
+            "correctness_score": 0.0,
+            "max_score": 1.0
+          },
+          "score_breakdown": {
+            "correctness_score": 0.0,
+            "max_score": 1.0,
+            "correctness_percent": 0.0,
+            "quality_applied": false,
+            "quality_mode": "disabled",
+            "quality_weight_percent": 0.0,
+            "quality_score": null,
+            "total_score": 0.0,
+            "total_percent": 0.0
+          }
+        },
+        "error_message": "[Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1] Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1|stdout_mismatch",
+        "queued_at": "2026-04-13T20:24:21.880376Z",
+        "started_at": "2026-04-13T20:24:21.893492Z",
+        "finished_at": "2026-04-13T20:24:25.442941Z",
+        "created_at": "2026-04-13T20:24:21.880381Z",
+        "updated_at": "2026-04-13T20:24:25.443367Z",
+        "attempts": [
+          {
+            "id": "bcf28918-71cd-495e-b892-89dee89061af",
+            "job_id": "a48d5619-03ba-4a4e-b87b-5a913aa2e58a",
+            "attempt_index": 1,
+            "stage": "EXECUTING_RAW",
+            "passed": false,
+            "exit_code": 1,
+            "score": 0.0,
+            "stdout": "Passed 0/1 testcases.",
+            "stderr": "Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1|stdout_mismatch",
+            "shim_used": false,
+            "shim_source": null,
+            "artifacts_json": {
+              "executor": "local_subprocess",
+              "enabled": true,
+              "language": "python",
+              "comparison_mode": "strict",
+              "shim_used": false,
+              "shim_source": null,
+              "compile_flags": [],
+              "link_flags": [],
+              "run_flags": [],
+              "network_enforced": false,
+              "max_score": 1.0,
+              "earned_score": 0.0,
+              "testcases": [
+                {
+                  "testcase_id": "tc1",
+                  "passed": false,
+                  "weight": 1.0,
+                  "awarded_score": 0.0,
+                  "exit_code": 1,
+                  "stdout": "",
+                  "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_l_h2xo4g/solution.py\", line 3, in <module>\n    x = int(sys.argv[1])\n            ~~~~~~~~^^^\nIndexError: list index out of range\n",
+                  "failure_reason": "exit_code_expected_0_got_1|stdout_mismatch",
+                  "output_truncated": false
+                }
+              ],
+              "warnings": [
+                "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+              ]
+            },
+            "started_at": "2026-04-13T20:24:21.896667Z",
+            "finished_at": "2026-04-13T20:24:21.914712Z",
+            "created_at": "2026-04-13T20:24:21.916272Z"
+          }
+        ]
+      }
+    },
+    {
+      "job_detail": {
+        "id": "a48d5619-03ba-4a4e-b87b-5a913aa2e58a",
+        "assignment_id": "d49208f1-8f7d-4a65-9a88-029123b81cdc",
+        "submission_id": "1cc935fb-5c49-459c-837d-59e645de2cff",
+        "environment_version_id": "4172d7d2-bfaa-4c20-b9ff-a29518d0063a",
+        "status": "FAILED",
+        "language": "python",
+        "entrypoint": "solution.py",
+        "regrade_policy": "new_only_unless_explicit",
+        "explicit_regrade": false,
+        "attempt_count": 1,
+        "final_result_json": {
+          "job_id": "a48d5619-03ba-4a4e-b87b-5a913aa2e58a",
+          "submission_id": "1cc935fb-5c49-459c-837d-59e645de2cff",
+          "status": "FAILED",
+          "error_code": "Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1",
+          "attempts": [
+            {
+              "stage": "EXECUTING_RAW",
+              "passed": false,
+              "exit_code": 1,
+              "stdout": "Passed 0/1 testcases.",
+              "stderr": "Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1|stdout_mismatch",
+              "score": 0.0,
+              "shim_used": false,
+              "shim_source": null
+            }
+          ],
+          "attempt_artifacts": [
+            {
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "shim_used": false,
+              "executor": "local_subprocess",
+              "error_code": null,
+              "comparison_mode": "strict"
+            }
+          ],
+          "shim_decision": {
+            "eligible": false,
+            "reason": "detected_non_shimmable_failure|ai_shim_fixable_without_patch_rejected",
+            "comparison_mode": null,
+            "shim_source": null,
+            "analyzed_at": "2026-04-13T20:24:25.439293+00:00",
+            "failed_testcases": [
+              {
+                "testcase_id": "tc1",
+                "failure_tokens": [
+                  "exit_code_expected_0_got_1",
+                  "stdout_mismatch"
+                ],
+                "eligible": false,
+                "decision_reason": "exit_code_mismatch",
+                "stdout": "",
+                "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_l_h2xo4g/solution.py\", line 3, in <module>\n    x = int(sys.argv[1])\n            ~~~~~~~~^^^\nIndexError: list index out of range\n"
+              }
+            ],
+            "ai_decision": {
+              "eligible": false,
+              "reason": "ai_shim_fixable_without_patch_rejected",
+              "comparison_mode": null,
+              "shim_source": null,
+              "analyzed_at": "2026-04-13T20:24:25.439264+00:00",
+              "failed_testcases": [
+                {
+                  "testcase_id": "tc1",
+                  "failure_tokens": [
+                    "exit_code_expected_0_got_1",
+                    "stdout_mismatch"
+                  ],
+                  "eligible": false,
+                  "decision_reason": "exit_code_mismatch",
+                  "stdout": "",
+                  "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_l_h2xo4g/solution.py\", line 3, in <module>\n    x = int(sys.argv[1])\n            ~~~~~~~~^^^\nIndexError: list index out of range\n"
+                }
+              ],
+              "ai_reason": "The program expects input via command line arguments (sys.argv), but the test harness provides input via stdin. I will patch the script to read from stdin if argv is insufficient.",
+              "model": "gemini-3.1-flash-lite-preview",
+              "prompt_hash": "b58f62bf93c404651ee868e4c033961fe0bbd0037dad65b7b93c7eaed4449af1"
+            }
+          },
+          "quality_evaluation": {
+            "enabled": false,
+            "applied": false,
+            "reason": "correctness_not_passed",
+            "weight_percent": 0.0,
+            "mode": "disabled",
+            "correctness_score": 0.0,
+            "max_score": 1.0
+          },
+          "score_breakdown": {
+            "correctness_score": 0.0,
+            "max_score": 1.0,
+            "correctness_percent": 0.0,
+            "quality_applied": false,
+            "quality_mode": "disabled",
+            "quality_weight_percent": 0.0,
+            "quality_score": null,
+            "total_score": 0.0,
+            "total_percent": 0.0
+          }
+        },
+        "error_message": "[Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1] Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1|stdout_mismatch",
+        "queued_at": "2026-04-13T20:24:21.880376Z",
+        "started_at": "2026-04-13T20:24:21.893492Z",
+        "finished_at": "2026-04-13T20:24:25.442941Z",
+        "created_at": "2026-04-13T20:24:21.880381Z",
+        "updated_at": "2026-04-13T20:24:25.443367Z",
+        "attempts": [
+          {
+            "id": "bcf28918-71cd-495e-b892-89dee89061af",
+            "job_id": "a48d5619-03ba-4a4e-b87b-5a913aa2e58a",
+            "attempt_index": 1,
+            "stage": "EXECUTING_RAW",
+            "passed": false,
+            "exit_code": 1,
+            "score": 0.0,
+            "stdout": "Passed 0/1 testcases.",
+            "stderr": "Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1|stdout_mismatch",
+            "shim_used": false,
+            "shim_source": null,
+            "artifacts_json": {
+              "executor": "local_subprocess",
+              "enabled": true,
+              "language": "python",
+              "comparison_mode": "strict",
+              "shim_used": false,
+              "shim_source": null,
+              "compile_flags": [],
+              "link_flags": [],
+              "run_flags": [],
+              "network_enforced": false,
+              "max_score": 1.0,
+              "earned_score": 0.0,
+              "testcases": [
+                {
+                  "testcase_id": "tc1",
+                  "passed": false,
+                  "weight": 1.0,
+                  "awarded_score": 0.0,
+                  "exit_code": 1,
+                  "stdout": "",
+                  "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_l_h2xo4g/solution.py\", line 3, in <module>\n    x = int(sys.argv[1])\n            ~~~~~~~~^^^\nIndexError: list index out of range\n",
+                  "failure_reason": "exit_code_expected_0_got_1|stdout_mismatch",
+                  "output_truncated": false
+                }
+              ],
+              "warnings": [
+                "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+              ]
+            },
+            "started_at": "2026-04-13T20:24:21.896667Z",
+            "finished_at": "2026-04-13T20:24:21.914712Z",
+            "created_at": "2026-04-13T20:24:21.916272Z"
+          }
+        ]
+      }
+    },
+    {
+      "shim_verdict": "shim_not_triggered_for_this_code"
+    }
+  ]
+}

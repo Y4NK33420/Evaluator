@@ -1,0 +1,224 @@
+{
+  "test": "UC1:  Python stdin (5 testcases)",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "action": "submit_job",
+      "job_id": "59d11f34-6ad0-41ad-80e5-eb457062b140"
+    },
+    {
+      "action": "poll_result",
+      "raw_job": {
+        "id": "59d11f34-6ad0-41ad-80e5-eb457062b140",
+        "assignment_id": "1cc2c75c-8fb4-437b-a8b6-0483922755d4",
+        "submission_id": "2114c935-8829-4b3f-9984-da79845a5aaa",
+        "environment_version_id": "cb71cfb2-a60b-49f0-a4c0-a74ee1df362b",
+        "status": "COMPLETED",
+        "language": "python",
+        "entrypoint": "solution.py",
+        "regrade_policy": "new_only_unless_explicit",
+        "explicit_regrade": false,
+        "attempt_count": 1,
+        "final_result_json": {
+          "job_id": "59d11f34-6ad0-41ad-80e5-eb457062b140",
+          "submission_id": "2114c935-8829-4b3f-9984-da79845a5aaa",
+          "total_score": 5.0,
+          "max_score": 5.0,
+          "status": "COMPLETED",
+          "attempts": [
+            {
+              "stage": "EXECUTING_RAW",
+              "passed": true,
+              "exit_code": 0,
+              "stdout": "Passed 5/5 testcases.",
+              "stderr": "",
+              "score": 5.0,
+              "shim_used": false,
+              "shim_source": null
+            }
+          ],
+          "attempt_artifacts": [
+            {
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "shim_used": false,
+              "executor": "local_subprocess",
+              "error_code": null,
+              "comparison_mode": "strict"
+            }
+          ],
+          "quality_evaluation": {
+            "enabled": false,
+            "applied": false,
+            "reason": "quality_mode_disabled_or_weight_zero",
+            "weight_percent": 0.0,
+            "mode": "disabled",
+            "correctness_score": 5.0,
+            "max_score": 5.0
+          },
+          "score_breakdown": {
+            "correctness_score": 5.0,
+            "max_score": 5.0,
+            "correctness_percent": 100.0,
+            "quality_applied": false,
+            "quality_mode": "disabled",
+            "quality_weight_percent": 0.0,
+            "quality_score": null,
+            "total_score": 5.0,
+            "total_percent": 100.0
+          }
+        },
+        "error_message": null,
+        "queued_at": "2026-04-13T20:23:03.615110Z",
+        "started_at": "2026-04-13T20:23:03.634320Z",
+        "finished_at": "2026-04-13T20:23:03.722405Z",
+        "created_at": "2026-04-13T20:23:03.615115Z",
+        "updated_at": "2026-04-13T20:23:03.722687Z",
+        "attempts": [
+          {
+            "id": "7404651b-ee99-430b-979a-181414e1db1c",
+            "job_id": "59d11f34-6ad0-41ad-80e5-eb457062b140",
+            "attempt_index": 1,
+            "stage": "EXECUTING_RAW",
+            "passed": true,
+            "exit_code": 0,
+            "score": 5.0,
+            "stdout": "Passed 5/5 testcases.",
+            "stderr": "",
+            "shim_used": false,
+            "shim_source": null,
+            "artifacts_json": {
+              "executor": "local_subprocess",
+              "enabled": true,
+              "language": "python",
+              "comparison_mode": "strict",
+              "shim_used": false,
+              "shim_source": null,
+              "compile_flags": [],
+              "link_flags": [],
+              "run_flags": [],
+              "network_enforced": false,
+              "max_score": 5.0,
+              "earned_score": 5.0,
+              "testcases": [
+                {
+                  "testcase_id": "tc1",
+                  "passed": true,
+                  "weight": 1.0,
+                  "awarded_score": 1.0,
+                  "exit_code": 0,
+                  "stdout": "10\n",
+                  "stderr": "",
+                  "failure_reason": null,
+                  "output_truncated": false
+                },
+                {
+                  "testcase_id": "tc2",
+                  "passed": true,
+                  "weight": 1.0,
+                  "awarded_score": 1.0,
+                  "exit_code": 0,
+                  "stdout": "0\n",
+                  "stderr": "",
+                  "failure_reason": null,
+                  "output_truncated": false
+                },
+                {
+                  "testcase_id": "tc3",
+                  "passed": true,
+                  "weight": 1.0,
+                  "awarded_score": 1.0,
+                  "exit_code": 0,
+                  "stdout": "300\n",
+                  "stderr": "",
+                  "failure_reason": null,
+                  "output_truncated": false
+                },
+                {
+                  "testcase_id": "tc4",
+                  "passed": true,
+                  "weight": 1.0,
+                  "awarded_score": 1.0,
+                  "exit_code": 0,
+                  "stdout": "0\n",
+                  "stderr": "",
+                  "failure_reason": null,
+                  "output_truncated": false
+                },
+                {
+                  "testcase_id": "tc5",
+                  "passed": true,
+                  "weight": 1.0,
+                  "awarded_score": 1.0,
+                  "exit_code": 0,
+                  "stdout": "1000\n",
+                  "stderr": "",
+                  "failure_reason": null,
+                  "output_truncated": false
+                }
+              ],
+              "warnings": [
+                "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+              ]
+            },
+            "started_at": "2026-04-13T20:23:03.638543Z",
+            "finished_at": "2026-04-13T20:23:03.712727Z",
+            "created_at": "2026-04-13T20:23:03.714600Z"
+          }
+        ]
+      }
+    },
+    {
+      "score": 5.0,
+      "final_result_json": {
+        "job_id": "59d11f34-6ad0-41ad-80e5-eb457062b140",
+        "submission_id": "2114c935-8829-4b3f-9984-da79845a5aaa",
+        "total_score": 5.0,
+        "max_score": 5.0,
+        "status": "COMPLETED",
+        "attempts": [
+          {
+            "stage": "EXECUTING_RAW",
+            "passed": true,
+            "exit_code": 0,
+            "stdout": "Passed 5/5 testcases.",
+            "stderr": "",
+            "score": 5.0,
+            "shim_used": false,
+            "shim_source": null
+          }
+        ],
+        "attempt_artifacts": [
+          {
+            "attempt_index": 1,
+            "stage": "EXECUTING_RAW",
+            "shim_used": false,
+            "executor": "local_subprocess",
+            "error_code": null,
+            "comparison_mode": "strict"
+          }
+        ],
+        "quality_evaluation": {
+          "enabled": false,
+          "applied": false,
+          "reason": "quality_mode_disabled_or_weight_zero",
+          "weight_percent": 0.0,
+          "mode": "disabled",
+          "correctness_score": 5.0,
+          "max_score": 5.0
+        },
+        "score_breakdown": {
+          "correctness_score": 5.0,
+          "max_score": 5.0,
+          "correctness_percent": 100.0,
+          "quality_applied": false,
+          "quality_mode": "disabled",
+          "quality_weight_percent": 0.0,
+          "quality_score": null,
+          "total_score": 5.0,
+          "total_percent": 100.0
+        }
+      }
+    }
+  ]
+}

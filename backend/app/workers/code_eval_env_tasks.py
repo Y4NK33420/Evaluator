@@ -32,6 +32,34 @@ def _append_log(existing: str | None, line: str) -> str:
     return line
 
 
+def _find_existing_freeze_key(
+    db: Session,
+    env: CodeEvalEnvironmentVersion,
+    candidate_freeze_key: str,
+) -> str | None:
+    """Return an existing freeze_key from a ready env version with the same spec.
+
+    This prevents rebuilding identical environments (e.g., same Python 3.11 +
+    numpy spec used across 10 assignments with COURSE_REUSE mode).
+    """
+    existing = (
+        db.query(CodeEvalEnvironmentVersion)
+        .filter(
+            CodeEvalEnvironmentVersion.freeze_key == candidate_freeze_key,
+            CodeEvalEnvironmentVersion.status == CodeEvalEnvironmentStatus.ready,
+            CodeEvalEnvironmentVersion.id != env.id,  # not self
+        )
+        .first()
+    )
+    if existing is not None:
+        log.info(
+            "env_build dedup: reusing freeze_key='%s' from env_version=%s for new env_version=%s",
+            candidate_freeze_key, existing.id, env.id,
+        )
+        return candidate_freeze_key
+    return None
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as fh:
@@ -202,6 +230,11 @@ def run_code_eval_environment_build_task(
         db.commit()
 
         freeze_key, detail, spec_updates = _validate_and_resolve_freeze_key(env)
+
+        # Dedup: if an identical spec already produced a ready freeze_key, reuse it
+        reused = _find_existing_freeze_key(db, env, freeze_key)
+        if reused:
+            detail = f"[dedup] Reused existing freeze_key from ready environment. {detail}"
 
         env.freeze_key = freeze_key
         if spec_updates:

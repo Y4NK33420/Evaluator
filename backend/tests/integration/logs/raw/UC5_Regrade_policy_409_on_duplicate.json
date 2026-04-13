@@ -1,0 +1,13 @@
+{
+  "test": "UC5:  Regrade policy (409 on duplicate)",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "job1": "82178038-d297-45c7-adf2-df51c1fc42d9"
+    },
+    {
+      "duplicate_job_status": 409,
+      "response": "{\"detail\":\"Submission already has a completed code-eval job. Explicit regrade is required for reprocessing under the current policy.\"}"
+    }
+  ]
+}

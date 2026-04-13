@@ -11,7 +11,168 @@ Practice:
 - Keep each entry concise (what changed, what was validated, what remains).
 - Link to raw validation artifacts in `logs/` whenever available.
 
-### 2026-04-07
+### 2026-04-14 — Code-Eval Hardening, Multi-Language Execution, and Rigorous Integration Testing
+
+#### Overview
+
+This session completed the production hardening of the code-eval pipeline. Work covers:
+- Six new/rewritten code-eval service modules
+- One new Alembic migration
+- A complete rewrite of the integration test suite as a standalone no-xfail runner
+- Four real bugs found and fixed through live testing (not hypothetical)
+- Full multi-language validation: Python, C (gcc 14.2), C++ (g++ 14.2), Java (javac 21)
+- AI shim real-Gemini path verified live
+
+Final integration result: **20/20 tests passed, 0 failures, 0 xfails, 0 skips**.
+
+---
+
+#### New Files Created
+
+| File | Purpose |
+|---|---|
+| `backend/app/services/code_eval/language_config.py` | Authoritative `language_config` parser and validator. Raises `ValueError` on any unknown key (no silent ignoring). Merges instructor overrides onto per-language profile defaults. |
+| `backend/app/services/code_eval/language_profiles.py` | Per-language execution profiles: default compile flags, link flags, run flags, entrypoint style, timeout, and memory for Python, C (gcc), C++ (g++), Java. |
+| `backend/app/services/code_eval/test_authoring_service.py` | AI-assisted testcase generation (mode 2: question+solution→tests, mode 3: question→solution+tests) and approval coverage validation (`CoverageError` with explicit min-class requirements). |
+| `backend/app/services/code_eval/scoring_service.py` | `build_score_breakdown()` — aggregates attempt scores, quality weight, and total/max into a deterministic score breakdown dict. Previously missing from containers, causing `ModuleNotFoundError`. |
+| `backend/alembic/versions/004_code_eval_grade_backref.py` | Migration adding `grade_id` FK column on `code_eval_jobs` (back-reference from job → grade) and adding `code_eval` to the `gradesource` enum. |
+| `backend/tests/integration/run_rigorous.py` | Standalone integration test runner. 20 use cases, no pytest.xfail, no skips, raw JSON logged per test to `logs/raw/`. |
+| `backend/tests/integration/test_live_system.py` | Pytest-based integration suite (33 test cases, complementary to rigorous runner — used for CI). |
+| `backend/tests/code_eval/test_ai_shim_multilang.py` | Unit tests for shim service multi-language eligibility logic. |
+| `backend/tests/code_eval/test_language_config.py` | Unit tests for `parse_language_config`: unknown key rejection, type validation, profile-default merging. |
+
+---
+
+#### Modified Files (diff stats)
+
+| File | +lines / -lines | What changed |
+|---|---|---|
+| `backend/app/workers/code_eval_tasks.py` | +307 / −138 | Full lifecycle rewrite: grade write-back, structured transition logging, env version pre-check, **language_config validation gate** (see bug #4), shim_warning surfacing |
+| `backend/app/services/code_eval/execution_service.py` | +450 / −346 | Real polyglot dispatch for C/C++/Java; try/except around parse_language_config in both local and docker backends; testcase_results init fix |
+| `backend/app/services/code_eval/shim_service.py` | +300 / −227 | Real Gemini model call instead of deterministic string substitution; multi-language shim eligibility analysis |
+| `backend/app/api/v1/code_eval.py` | +178 / −0 | Added `GET /environments/versions/{id}` endpoint; wired `test_authoring_service` into approval coverage validation; added test-authoring generation endpoints |
+| `backend/app/models/__init__.py` | +6 / −0 | Exported `CodeEvalEnvironmentVersion`, `Grade`, `GradeSource` for use in task imports |
+| `backend/app/services/code_eval/contracts.py` | +36 / −0 | Added missing `CodeEvalErrorCode` enum values; extended `QualityEvaluationConfig` with `model_name` |
+| `backend/app/workers/code_eval_env_tasks.py` | +33 / −0 | Added deterministic freeze-key dedup: if a ready env with the same freeze_key already exists, second env version is updated to match rather than rebuilding |
+
+---
+
+#### Real Bugs Found and Fixed (in order of discovery)
+
+**Bug 1: `scoring_service.py` missing from deployed containers**
+
+- Symptom: All code-eval jobs returned `ModuleNotFoundError: No module named 'app.services.code_eval.scoring_service'` in worker logs — jobs never completed.
+- Root cause: The file was planned in the architecture but never written.
+- Fix: Implemented `scoring_service.py` with `build_score_breakdown()`, deployed to both `amgs-backend` and `amgs-worker-code-eval`.
+- Impact: Unblocked the entire test suite.
+
+**Bug 2: `quality_evaluation.mode="none"` rejected by API**
+
+- Symptom: Integration test job submissions returned 422 Unprocessable Entity.
+- Root cause: `QualityEvaluationMode` enum only defines `"disabled"`, `"rubric_only"`, `"rubric_and_heuristics"` — `"none"` is not valid.
+- Fix: All tests corrected to use `"disabled"`. The API correctly rejects unknown enum values.
+- Design decision: `"disabled"` is the canonical zero-quality mode; `"none"` never existed in the validated schema.
+
+**Bug 3: JPEG hash dedup caused 409 for all students in classroom simulation**
+
+- Symptom: UC16 (8-student classroom): only stu-A succeeded; B–H all got 409 Conflict on submission upload.
+- Root cause: All students were uploading identical bytes (`\xff\xd8\xff\xe0` + 16 null bytes). The submission upload endpoint deduplicates by SHA-256 content hash — identical hash = same file = conflict.
+- Fix: `create_submission()` now embeds `student_id.encode()` into the JPEG stub bytes, making every student's file hash unique.
+- Design note: This is correct server behaviour (dedup prevents OCR re-processing of identical scans). The bug was in the test helper, not the server.
+
+**Bug 4 (most significant): `language_config` unknown keys silently ignored — data-flow gap**
+
+- Symptom: UC14 `test_unknown_language_config_key_rejected_at_job_create` — job COMPLETED despite `{"junk_key_must_fail": "boom"}` in `language_config`. Was masked with `pytest.xfail()`.
+- Root cause traced through three layers:
+  1. `execution_service._execute_local_backend` called `parse_language_config(request.environment.spec_json if hasattr(request.environment, "spec_json") else None, ...)`.
+  2. `request.environment` is of type `EnvironmentSpec` (the job request's inline spec, populated from `"environment": {}` in the API body). `EnvironmentSpec` has no `spec_json` attribute — `hasattr` returned `False`.
+  3. Parser received `None` → returned profile defaults → unknown keys in the actual DB-stored `spec_json` were never seen.
+- Fix: The validation was moved to `code_eval_tasks.py` where the DB session is live:
+  ```python
+  env_version = db.get(CodeEvalEnvironmentVersion, job.environment_version_id)
+  env_spec_json = env_version.spec_json if env_version else None
+  try:
+      parse_language_config(env_spec_json, job_language=request.language.value)
+  except ValueError as cfg_err:
+      # ... fail job with configuration_error before any execution starts
+  ```
+- This is now the **authoritative validation point** — fires unconditionally for every language, every job, before static analysis, before execution.
+- Spot-check confirmed: job with `junk_key_must_fail` now returns `FAILED` with `error_code=configuration_error` and the exact invalid key listed in `error_message`.
+
+---
+
+#### Design Decisions Made
+
+1. **Language config validation belongs in the task, not execution_service.**
+   The reason: `execution_service` only receives a `CodeEvalJobRequest` (deserialized from `job.request_json`), which contains `environment: EnvironmentSpec` — a normalized contract object, not the raw instructor-authored `spec_json`. The raw `spec_json` lives in `CodeEvalEnvironmentVersion` which is only accessible with a DB session. The task is the only correct place to do this validation because it has the DB session and has loaded the job. This also means validation happens once (not once per backend implementation), avoiding the risk of one backend forgetting to validate.
+
+2. **Fail-fast configuration errors before static analysis.**
+   The language_config gate runs before the static analysis gate. Rationale: a misconfigured environment version will cause every single submission to fail — it should be surfaced immediately, not buried inside attempt artifacts. Instructors see `[configuration_error] Unknown keys in language_config: ['junk_key_must_fail']` in the job's `error_message` with the allowed key list.
+
+3. **Compilers installed in the worker container, not via Docker-in-Docker.**
+   For local execution backend, compilers (`gcc`, `g++`, `javac`) are installed directly in `amgs-worker-code-eval` via `apt-get`. This avoids Docker socket complexity for the local backend path and makes C/C++/Java execution work without network requirements. The docker backend (when `CODE_EVAL_EXECUTION_BACKEND=docker`) uses a separate container image per language.
+
+4. **Integration test suite is a standalone Python script, not pytest.**
+   `run_rigorous.py` uses no pytest machinery. Reasons: (a) pytest's `xfail`/`skip` mechanisms are too easy to abuse — a standalone asserting script has no such escape hatch; (b) raw HTTP exchanges can be logged to JSON files per test without pytest plugins; (c) test runs produce a machine-readable `integration_results.json` suitable for CI consumption. The pytest suite (`test_live_system.py`) still exists for CI integration where its JUnit output is useful.
+
+5. **Unique JPEG stubs per student is a test requirement, not workaround.**
+   The server's file dedup (SHA-256 before OCR) is correct and intentional — it prevents re-OCR-ing identical scans. Integration tests must simulate realistic file diversity. Each student's stub now encodes their student_id into the JPEG bytes.
+
+6. **Grade write-back is non-fatal.**
+   If the grade DB write fails, the job still transitions to `COMPLETED` and the error is logged with `[GRADE_WRITE_FAILED]`. This prevents a grade table constraint issue from blocking the grading pipeline entirely. The missing grade is surfaced in logs for operator recovery.
+
+---
+
+#### Integration Test Evidence
+
+**Run ID:** `20260413T202301Z`
+**Execution time:** ~82 seconds (8 students × Python + 5 concurrent + single C/C++/Java + all others)
+
+```
+UC1:  Python stdin (5 testcases)                    ✅ score=5.0 exact
+UC1b: Grade write-back                              ✅ source=code_eval, total_score=1.0
+UC2:  C fibonacci (gcc 14.2, 4 testcases)           ✅ score=4.0, fib(10)=55 correct
+UC2b: C compile error → structured error_code       ✅ failure_reason contains "compile"
+UC3:  C++ sort vector (g++ 14.2, 3 testcases)       ✅ score=3.0, sorted output exact
+UC4:  Java FizzBuzz (javac 21, 2 testcases)         ✅ COMPLETED, FizzBuzz output exact
+UC5:  Regrade policy 409 on duplicate               ✅ second job → 409
+UC6:  Static analysis (subprocess/os/eval) ×3       ✅ all 3 variants blocked
+UC7:  Partial scoring (2/4 testcases pass)          ✅ attempt.score=2.0, FAILED overall
+UC9:  No grade for FAILED job                       ✅ GET /grade → 404
+UC10: Missing entrypoint → FAILED                   ✅ error_message non-empty
+UC11: 5 concurrent jobs                             ✅ 5/5 COMPLETED in 1.8s
+UC12: Approval coverage gate                        ✅ under-coverage=422, full=approved
+UC13: Infinite loop → timeout                       ✅ failure_reason contains "timeout"
+UC14: Bad language_config → configuration_error     ✅ FAILED (no xfail, no masking)
+UC15: Output truncation                             ✅ output_truncated=True for >512KB
+UC16: 8-student classroom                           ✅ exactly 4 COMPLETED, 4 FAILED, 9.4s
+UC17: Env guards inactive=409, cross-course=422     ✅
+UC18: AI shim — real Gemini verified                ✅ shim_generation_enabled=True, no mock
+UC19: API 404/422/409 robustness                    ✅
+```
+
+Raw logs (full HTTP request/response per test): `backend/tests/integration/logs/raw/` (20 JSON files).
+Summary: `backend/tests/integration/logs/integration_results.json`.
+
+---
+
+#### Load Test Summary
+
+- **5 concurrent Python jobs** (UC11): 5/5 COMPLETED in **1.8 seconds** wall time. Worker concurrency = 2.
+- **8-student classroom** (UC16): 4 passing + 4 failing students, 4 concurrent workers, **9.4 seconds** total. Previous runs took 29s because of hash-collision 409s forcing serial retries.
+
+---
+
+#### What Remains Open
+
+| Item | Status | Notes |
+|---|---|---|
+| `SAWarning` on FK cycle between `assignments` and `code_eval_environment_versions` | Non-blocking | Appears during `drop_all` in tests. Fix: apply `use_alter=True` to the involved ForeignKey. |
+| C/C++/Java compilers in worker are ephemeral | Transient | Installed via `docker exec apt-get`. The Dockerfile for `amgs-worker-code-eval` needs updating to bake them in permanently. |
+| Docker execution backend (separate container per language job) | Not tested this session | Local backend is the tested path. Docker backend has the same fix applied but needs a comparable test run. |
+| Full microVM runtime integration | Not yet | Pending Linux KVM host. Windows Docker Desktop cannot support Firecracker. |
+| AI shim model-assisted synthesis (not just retry eligibility) | Partial | `shim_service.py` now makes real Gemini calls for code wrapping. Full multi-language shim coverage not yet validated end-to-end for C/Java. |
+
 
 - Implemented environment build/freeze orchestration hooks for code-eval environment versions.
 - Added API endpoints for build enqueue and publish-readiness validation.
@@ -366,11 +527,12 @@ Done now:
   - post-build publish validation passes and job creation succeeds.
 
 Next recommended steps:
-1. Keep daily dev validation on Windows in default backend mode (`local`/`docker`) and avoid forcing `firecracker_vsock` on Docker Desktop hosts.
-2. Add/maintain Linux KVM staging validation lane using `microvm/scripts/linux_host_preflight.sh` + `microvm/scripts/firecracker_smoke.sh` before release.
-3. Expand objective-flow validation corpus and calibrate confidence/flag thresholds.
-4. Extend deterministic shim retry into model-assisted shim synthesis with explicit policy/audit controls and live success-path validation.
-5. Add a lightweight operations runbook (startup order, health checks, common failure signatures, recovery commands).
+1. **Bake compilers into the worker Dockerfile** — `gcc`, `g++`, `javac` are currently runtime-installed via `docker exec`. The `amgs-worker-code-eval` Dockerfile should include `RUN apt-get install -y gcc g++ default-jdk-headless`.
+2. Keep daily dev validation on Windows in default backend mode (`local`) and avoid forcing `firecracker_vsock` on Docker Desktop hosts.
+3. Add/maintain Linux KVM staging validation lane using `microvm/scripts/linux_host_preflight.sh` + `microvm/scripts/firecracker_smoke.sh` before release.
+4. Resolve the `SAWarning` FK cycle (`assignments` ↔ `code_eval_environment_versions`) by applying `use_alter=True` to the FK in `004_code_eval_grade_backref.py`.
+5. Validate docker execution backend (separate image-per-language) with the same 20-UC rigorous runner.
+6. Extend AI shim to C/Java: validate that the real Gemini call generates correct stdin wrapper shims for compiled languages.
 
 ## 8) Operational Notes for Future Sessions
 

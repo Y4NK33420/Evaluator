@@ -1,0 +1,153 @@
+{
+  "test": "UC3:  C++ sort vector (3 testcases)",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "raw_result": {
+        "id": "c4ae78c4-8a0e-4212-9541-83ea4347ed71",
+        "assignment_id": "c69f54e4-f9d9-4e36-a8cd-4945afbc62f8",
+        "submission_id": "ac7e3548-acef-4a9d-bd00-9d7efce571d7",
+        "environment_version_id": "0e16e5e4-3e98-465e-b1d0-b9d215d0a388",
+        "status": "COMPLETED",
+        "language": "cpp",
+        "entrypoint": "solution.cpp",
+        "regrade_policy": "new_only_unless_explicit",
+        "explicit_regrade": false,
+        "attempt_count": 1,
+        "final_result_json": {
+          "job_id": "c4ae78c4-8a0e-4212-9541-83ea4347ed71",
+          "submission_id": "ac7e3548-acef-4a9d-bd00-9d7efce571d7",
+          "total_score": 3.0,
+          "max_score": 3.0,
+          "status": "COMPLETED",
+          "attempts": [
+            {
+              "stage": "EXECUTING_RAW",
+              "passed": true,
+              "exit_code": 0,
+              "stdout": "Passed 3/3 testcases.",
+              "stderr": "",
+              "score": 3.0,
+              "shim_used": false,
+              "shim_source": null
+            }
+          ],
+          "attempt_artifacts": [
+            {
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "shim_used": false,
+              "executor": "local_subprocess",
+              "error_code": null,
+              "comparison_mode": "strict"
+            }
+          ],
+          "quality_evaluation": {
+            "enabled": false,
+            "applied": false,
+            "reason": "quality_mode_disabled_or_weight_zero",
+            "weight_percent": 0.0,
+            "mode": "disabled",
+            "correctness_score": 3.0,
+            "max_score": 3.0
+          },
+          "score_breakdown": {
+            "correctness_score": 3.0,
+            "max_score": 3.0,
+            "correctness_percent": 100.0,
+            "quality_applied": false,
+            "quality_mode": "disabled",
+            "quality_weight_percent": 0.0,
+            "quality_score": null,
+            "total_score": 3.0,
+            "total_percent": 100.0
+          }
+        },
+        "error_message": null,
+        "queued_at": "2026-04-13T20:23:23.672077Z",
+        "started_at": "2026-04-13T20:23:23.684870Z",
+        "finished_at": "2026-04-13T20:23:24.473783Z",
+        "created_at": "2026-04-13T20:23:23.672082Z",
+        "updated_at": "2026-04-13T20:23:24.474043Z",
+        "attempts": [
+          {
+            "id": "d12a870b-97a5-4639-b3df-31fdf4a640ab",
+            "job_id": "c4ae78c4-8a0e-4212-9541-83ea4347ed71",
+            "attempt_index": 1,
+            "stage": "EXECUTING_RAW",
+            "passed": true,
+            "exit_code": 0,
+            "score": 3.0,
+            "stdout": "Passed 3/3 testcases.",
+            "stderr": "",
+            "shim_used": false,
+            "shim_source": null,
+            "artifacts_json": {
+              "executor": "local_subprocess",
+              "enabled": true,
+              "language": "cpp",
+              "comparison_mode": "strict",
+              "shim_used": false,
+              "shim_source": null,
+              "compile_flags": [
+                "-Wall",
+                "-Wextra",
+                "-O2",
+                "-std=c++20",
+                "-DNDEBUG"
+              ],
+              "link_flags": [
+                "-lm"
+              ],
+              "run_flags": [],
+              "network_enforced": false,
+              "max_score": 3.0,
+              "earned_score": 3.0,
+              "testcases": [
+                {
+                  "testcase_id": "tc1",
+                  "passed": true,
+                  "weight": 1.0,
+                  "awarded_score": 1.0,
+                  "exit_code": 0,
+                  "stdout": "1 1 3 4 5\n",
+                  "stderr": "",
+                  "failure_reason": null,
+                  "output_truncated": false
+                },
+                {
+                  "testcase_id": "tc2",
+                  "passed": true,
+                  "weight": 1.0,
+                  "awarded_score": 1.0,
+                  "exit_code": 0,
+                  "stdout": "2 7 9\n",
+                  "stderr": "",
+                  "failure_reason": null,
+                  "output_truncated": false
+                },
+                {
+                  "testcase_id": "tc3",
+                  "passed": true,
+                  "weight": 1.0,
+                  "awarded_score": 1.0,
+                  "exit_code": 0,
+                  "stdout": "42\n",
+                  "stderr": "",
+                  "failure_reason": null,
+                  "output_truncated": false
+                }
+              ],
+              "warnings": [
+                "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+              ]
+            },
+            "started_at": "2026-04-13T20:23:23.689132Z",
+            "finished_at": "2026-04-13T20:23:24.466274Z",
+            "created_at": "2026-04-13T20:23:24.467549Z"
+          }
+        ]
+      }
+    }
+  ]
+}

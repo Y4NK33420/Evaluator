@@ -71,6 +71,42 @@ class RegradePolicy(StrEnum):
     FORCE_REPROCESS_ALL = "force_reprocess_all"
 
 
+class CodeEvalErrorCode(StrEnum):
+    """Structured error codes for code-eval failures. No silent fallbacks — every
+    failure must map to one of these reason codes so operators can triage from DB."""
+
+    # Pre-execution gates
+    STATIC_ANALYSIS_BLOCKED = "static_analysis_blocked"
+    ENTRYPOINT_MISSING = "entrypoint_missing"
+    ENVIRONMENT_NOT_READY = "environment_not_ready"
+    FREEZE_KEY_MISSING = "freeze_key_missing"
+    CONFIGURATION_ERROR = "configuration_error"
+
+    # Compiler/runtime setup
+    COMPILER_NOT_FOUND = "compiler_not_found"
+    COMPILE_ERROR = "compile_error"
+    COMPILE_TIMEOUT = "compile_timeout"
+    RUNTIME_UNAVAILABLE = "runtime_unavailable"
+
+    # Execution
+    EXECUTION_TIMEOUT = "execution_timeout"
+    OUTPUT_TRUNCATED = "output_truncated"
+
+    # Docker/container
+    DOCKER_UNAVAILABLE = "docker_unavailable"
+    DOCKER_IMAGE_PULL_FAILED = "docker_image_pull_failed"
+
+    # AI shim
+    AI_SHIM_MODEL_ERROR = "ai_shim_model_error"
+    AI_SHIM_DISABLED = "ai_shim_disabled"
+    AI_SHIM_LANGUAGE_NOT_SUPPORTED = "ai_shim_language_not_supported"
+    SHIM_COMPILE_CHECK_FAILED = "shim_compile_check_failed"
+    SHIM_PATCH_PATH_UNSAFE = "shim_patch_path_unsafe"
+
+    # Grade write-back
+    GRADE_WRITE_FAILED = "grade_write_failed"
+
+
 class ExecutionQuota(BaseModel):
     timeout_seconds: float = Field(default=5.0, gt=0, le=60)
     memory_mb: int = Field(default=256, ge=64, le=4096)

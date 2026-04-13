@@ -44,6 +44,14 @@ from app.services.code_eval.contracts import (
     TestAuthoringMode,
 )
 from app.services.code_eval.firecracker_runtime import collect_firecracker_preflight
+from app.services.code_eval.test_authoring_service import (
+    CoverageError,
+    draft_to_testcase_specs,
+    generate_testcases_from_question_and_solution,
+    generate_solution_and_testcases_from_question,
+    validate_testcase_draft_coverage,
+)
+from app.services.genai_client import ModelServiceError
 
 router = APIRouter(prefix="/code-eval", tags=["code-eval"])
 settings = get_settings()
@@ -345,6 +353,21 @@ def list_environment_versions(
     return q.order_by(CodeEvalEnvironmentVersion.created_at.desc()).all()
 
 
+@router.get(
+    "/environments/versions/{environment_version_id}",
+    response_model=CodeEvalEnvironmentVersionOut,
+)
+def get_environment_version(
+    environment_version_id: str,
+    db: Session = Depends(get_db),
+):
+    env = db.get(CodeEvalEnvironmentVersion, environment_version_id)
+    if not env:
+        raise HTTPException(404, "Environment version not found")
+    return env
+
+
+
 @router.post(
     "/environments/versions/{environment_version_id}/build",
     response_model=CodeEvalEnvironmentBuildOut,
@@ -448,7 +471,16 @@ def approve_record(approval_id: str, body: CodeEvalApprovalDecision, db: Session
         raise HTTPException(404, "Approval record not found")
 
     if approval.artifact_type == CodeEvalApprovalArtifactType.ai_tests:
-        _validate_ai_testcase_coverage(approval.content_json)
+        # Use the authoritative coverage validator from test_authoring_service
+        raw_testcases = []
+        if isinstance(approval.content_json, dict):
+            raw_testcases = approval.content_json.get("testcase_raw_with_classes") or []
+        if not raw_testcases and isinstance(approval.content_json, dict):
+            raw_testcases = approval.content_json.get("tests") or []
+        try:
+            validate_testcase_draft_coverage(raw_testcases)
+        except CoverageError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
 
     approval.status = CodeEvalApprovalStatus.approved
     approval.approved_by = body.actor
@@ -685,3 +717,147 @@ def get_job(job_id: str, db: Session = Depends(get_db)):
         **CodeEvalJobOut.model_validate(job).model_dump(),
         attempts=attempts,
     )
+
+
+# ── Test authoring endpoints ───────────────────────────────────────────────────
+
+class _GenerateTestsRequest(object):
+    """Inline schema for generate-tests — avoids a new schemas file for a single endpoint."""
+    pass
+
+
+from pydantic import BaseModel as _PydanticBaseModel
+
+
+class GenerateTestsBody(_PydanticBaseModel):
+    question_text: str
+    solution_code: str | None = None   # required for mode2, optional for mode3
+    language: str
+    entrypoint: str
+    num_cases: int = 6
+    mode: str = "mode2"  # "mode2" | "mode3"
+
+
+@router.post("/approvals/{approval_id}/generate-tests", status_code=200)
+def generate_tests_for_approval(
+    approval_id: str,
+    body: GenerateTestsBody,
+    db: Session = Depends(get_db),
+):
+    """Generate AI test case drafts and store them in the approval record.
+
+    - mode2: requires solution_code; generates TestCaseSpec[] from question + solution.
+    - mode3: generates solution + TestCaseSpec[] from question alone.
+
+    On success: approval.content_json is updated with the draft and
+    approval.status is set to 'pending' (re-review required).
+    On model failure: returns HTTP 502 with error details.
+    On coverage failure: returns HTTP 422.
+    """
+    approval = db.get(CodeEvalApprovalRecord, approval_id)
+    if not approval:
+        raise HTTPException(404, "Approval record not found")
+
+    mode = body.mode.strip().lower()
+
+    try:
+        if mode == "mode2":
+            if not body.solution_code or not body.solution_code.strip():
+                raise HTTPException(
+                    422,
+                    "mode2 requires solution_code to be provided",
+                )
+            result = generate_testcases_from_question_and_solution(
+                question_text=body.question_text,
+                solution_code=body.solution_code,
+                language=body.language,
+                entrypoint=body.entrypoint,
+                num_cases=body.num_cases,
+            )
+        elif mode == "mode3":
+            result = generate_solution_and_testcases_from_question(
+                question_text=body.question_text,
+                language=body.language,
+                entrypoint=body.entrypoint,
+                num_cases=body.num_cases,
+            )
+        else:
+            raise HTTPException(422, f"Unknown mode '{mode}'. Must be 'mode2' or 'mode3'.")
+
+    except ModelServiceError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "error": "ai_model_unavailable",
+                "message": str(exc),
+                "mode": mode,
+            },
+        )
+    except CoverageError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "coverage_gate_failed",
+                "message": str(exc),
+                "mode": mode,
+            },
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"error": "validation_failed", "message": str(exc), "mode": mode},
+        )
+
+    # Store draft in approval record and reset to pending review
+    approval.content_json = result
+    approval.status = CodeEvalApprovalStatus.pending
+    approval.approved_by = None
+    approval.approved_at = None
+    approval.rejected_reason = None
+    db.commit()
+    db.refresh(approval)
+
+    return {
+        "approval_id": approval.id,
+        "status": approval.status.value,
+        "mode": mode,
+        "num_generated": len(result.get("testcases", [])),
+        "coverage_notes": result.get("coverage_notes", ""),
+        "class_distribution": result.get("class_distribution", {}),
+        "generation_metadata": result.get("generation_metadata", {}),
+        "message": "Draft generated. Review and approve before use in grading.",
+    }
+
+
+@router.get("/jobs/{job_id}/grade")
+def get_job_grade(
+    job_id: str,
+    db: Session = Depends(get_db),
+):
+    """Return the Grade record linked to a completed code-eval job."""
+    job = db.get(CodeEvalJob, job_id)
+    if not job:
+        raise HTTPException(404, "Code-eval job not found")
+    if job.status != CodeEvalJobStatus.COMPLETED:
+        raise HTTPException(
+            409,
+            f"Job is not completed (status={job.status.value}). Grade is only available after COMPLETED.",
+        )
+    if not job.grade_id:
+        raise HTTPException(
+            404,
+            "No grade record linked to this job. Grade write may have failed — check application logs.",
+        )
+    from app.models import Grade
+    grade = db.get(Grade, job.grade_id)
+    if not grade:
+        raise HTTPException(404, "Grade record not found (orphaned grade_id).")
+    return {
+        "grade_id": grade.id,
+        "submission_id": grade.submission_id,
+        "total_score": grade.total_score,
+        "source": grade.source.value,
+        "graded_at": grade.graded_at.isoformat() if grade.graded_at else None,
+        "classroom_status": grade.classroom_status.value,
+        "breakdown_json": grade.breakdown_json,
+    }

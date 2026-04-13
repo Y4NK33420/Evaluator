@@ -1,0 +1,234 @@
+{
+  "test": "UC7:  Partial scoring (2/4 testcases pass)",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "raw_result": {
+        "id": "552ac228-43d9-44e4-871b-8228bde8917a",
+        "assignment_id": "14d19a71-9365-4ad2-bf17-0ec8824c050a",
+        "submission_id": "3a92e2df-9b99-438f-8321-e5a3400f5b55",
+        "environment_version_id": "bd09eb1b-f543-438c-a568-e0aa9cf7cccc",
+        "status": "FAILED",
+        "language": "python",
+        "entrypoint": "solution.py",
+        "regrade_policy": "new_only_unless_explicit",
+        "explicit_regrade": false,
+        "attempt_count": 1,
+        "final_result_json": {
+          "job_id": "552ac228-43d9-44e4-871b-8228bde8917a",
+          "submission_id": "3a92e2df-9b99-438f-8321-e5a3400f5b55",
+          "status": "FAILED",
+          "error_code": "Some testcases failed. First failing testcase=tc3 reason=stdout_mismatch",
+          "attempts": [
+            {
+              "stage": "EXECUTING_RAW",
+              "passed": false,
+              "exit_code": 1,
+              "stdout": "Passed 2/4 testcases.",
+              "stderr": "Some testcases failed. First failing testcase=tc3 reason=stdout_mismatch",
+              "score": 2.0,
+              "shim_used": false,
+              "shim_source": null
+            }
+          ],
+          "attempt_artifacts": [
+            {
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "shim_used": false,
+              "executor": "local_subprocess",
+              "error_code": null,
+              "comparison_mode": "strict"
+            }
+          ],
+          "shim_decision": {
+            "eligible": false,
+            "reason": "detected_non_shimmable_failure|ai_shim_model_error",
+            "comparison_mode": null,
+            "shim_source": null,
+            "analyzed_at": "2026-04-13T20:23:42.365307+00:00",
+            "failed_testcases": [
+              {
+                "testcase_id": "tc3",
+                "failure_tokens": [
+                  "stdout_mismatch"
+                ],
+                "eligible": false,
+                "decision_reason": "output_difference_not_whitespace_only",
+                "stdout": "ERROR\n",
+                "stderr": ""
+              },
+              {
+                "testcase_id": "tc4",
+                "failure_tokens": [
+                  "stdout_mismatch"
+                ],
+                "eligible": false,
+                "decision_reason": "output_difference_not_whitespace_only",
+                "stdout": "ERROR\n",
+                "stderr": ""
+              }
+            ],
+            "ai_decision": {
+              "eligible": false,
+              "reason": "ai_shim_model_error",
+              "comparison_mode": null,
+              "shim_source": null,
+              "analyzed_at": "2026-04-13T20:23:42.365288+00:00",
+              "failed_testcases": [
+                {
+                  "testcase_id": "tc3",
+                  "failure_tokens": [
+                    "stdout_mismatch"
+                  ],
+                  "eligible": false,
+                  "decision_reason": "output_difference_not_whitespace_only",
+                  "stdout": "ERROR\n",
+                  "stderr": ""
+                },
+                {
+                  "testcase_id": "tc4",
+                  "failure_tokens": [
+                    "stdout_mismatch"
+                  ],
+                  "eligible": false,
+                  "decision_reason": "output_difference_not_whitespace_only",
+                  "stdout": "ERROR\n",
+                  "stderr": ""
+                }
+              ],
+              "ai_error": "Code-eval AI shim analysis (python) temporarily unavailable. The model service is currently overloaded or rate-limited. Please retry in a few minutes.",
+              "model": "gemini-3.1-flash-lite-preview",
+              "prompt_hash": "10b38aae1e0134f3cbb2424cac09559dc0b7303f7147fea3f09d5cd2c997337b",
+              "shim_warning": {
+                "attempted": true,
+                "reason": "model_unavailable",
+                "error": "Code-eval AI shim analysis (python) temporarily unavailable. The model service is currently overloaded or rate-limited. Please retry in a few minutes.",
+                "language": "python"
+              }
+            },
+            "shim_warning": {
+              "attempted": true,
+              "reason": "model_unavailable",
+              "error": "Code-eval AI shim analysis (python) temporarily unavailable. The model service is currently overloaded or rate-limited. Please retry in a few minutes.",
+              "language": "python"
+            }
+          },
+          "quality_evaluation": {
+            "enabled": false,
+            "applied": false,
+            "reason": "correctness_not_passed",
+            "weight_percent": 0.0,
+            "mode": "disabled",
+            "correctness_score": 2.0,
+            "max_score": 4.0
+          },
+          "score_breakdown": {
+            "correctness_score": 2.0,
+            "max_score": 4.0,
+            "correctness_percent": 50.0,
+            "quality_applied": false,
+            "quality_mode": "disabled",
+            "quality_weight_percent": 0.0,
+            "quality_score": null,
+            "total_score": 2.0,
+            "total_percent": 50.0
+          },
+          "shim_warning": {
+            "attempted": true,
+            "reason": "model_unavailable",
+            "error": "Code-eval AI shim analysis (python) temporarily unavailable. The model service is currently overloaded or rate-limited. Please retry in a few minutes.",
+            "language": "python"
+          }
+        },
+        "error_message": "[Some testcases failed. First failing testcase=tc3 reason=stdout_mismatch] Some testcases failed. First failing testcase=tc3 reason=stdout_mismatch",
+        "queued_at": "2026-04-13T20:23:32.761309Z",
+        "started_at": "2026-04-13T20:23:32.775451Z",
+        "finished_at": "2026-04-13T20:23:42.367476Z",
+        "created_at": "2026-04-13T20:23:32.761313Z",
+        "updated_at": "2026-04-13T20:23:42.368250Z",
+        "attempts": [
+          {
+            "id": "02bf9c70-69de-462b-af21-ae937268b902",
+            "job_id": "552ac228-43d9-44e4-871b-8228bde8917a",
+            "attempt_index": 1,
+            "stage": "EXECUTING_RAW",
+            "passed": false,
+            "exit_code": 1,
+            "score": 2.0,
+            "stdout": "Passed 2/4 testcases.",
+            "stderr": "Some testcases failed. First failing testcase=tc3 reason=stdout_mismatch",
+            "shim_used": false,
+            "shim_source": null,
+            "artifacts_json": {
+              "executor": "local_subprocess",
+              "enabled": true,
+              "language": "python",
+              "comparison_mode": "strict",
+              "shim_used": false,
+              "shim_source": null,
+              "compile_flags": [],
+              "link_flags": [],
+              "run_flags": [],
+              "network_enforced": false,
+              "max_score": 4.0,
+              "earned_score": 2.0,
+              "testcases": [
+                {
+                  "testcase_id": "tc1",
+                  "passed": true,
+                  "weight": 1.0,
+                  "awarded_score": 1.0,
+                  "exit_code": 0,
+                  "stdout": "10\n",
+                  "stderr": "",
+                  "failure_reason": null,
+                  "output_truncated": false
+                },
+                {
+                  "testcase_id": "tc2",
+                  "passed": true,
+                  "weight": 1.0,
+                  "awarded_score": 1.0,
+                  "exit_code": 0,
+                  "stdout": "20\n",
+                  "stderr": "",
+                  "failure_reason": null,
+                  "output_truncated": false
+                },
+                {
+                  "testcase_id": "tc3",
+                  "passed": false,
+                  "weight": 1.0,
+                  "awarded_score": 0.0,
+                  "exit_code": 0,
+                  "stdout": "ERROR\n",
+                  "stderr": "",
+                  "failure_reason": "stdout_mismatch",
+                  "output_truncated": false
+                },
+                {
+                  "testcase_id": "tc4",
+                  "passed": false,
+                  "weight": 1.0,
+                  "awarded_score": 0.0,
+                  "exit_code": 0,
+                  "stdout": "ERROR\n",
+                  "stderr": "",
+                  "failure_reason": "stdout_mismatch",
+                  "output_truncated": false
+                }
+              ],
+              "warnings": [
+                "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+              ]
+            },
+            "started_at": "2026-04-13T20:23:32.779604Z",
+            "finished_at": "2026-04-13T20:23:32.845948Z",
+            "created_at": "2026-04-13T20:23:32.848019Z"
+          }
+        ]
+      }
+    }
+  ]
+}

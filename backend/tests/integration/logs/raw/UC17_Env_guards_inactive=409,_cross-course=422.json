@@ -1,0 +1,14 @@
+{
+  "test": "UC17: Env guards (inactive=409, cross-course=422)",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "inactive_env_status": 409,
+      "body": "{\"detail\":\"Environment version is inactive\"}"
+    },
+    {
+      "cross_course_status": 422,
+      "body": "{\"detail\":\"Environment version course does not match assignment course\"}"
+    }
+  ]
+}
