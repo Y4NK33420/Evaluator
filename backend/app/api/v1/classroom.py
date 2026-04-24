@@ -73,6 +73,36 @@ def auth_status():
     return cs.get_auth_status()
 
 
+@router.post("/generate-token")
+def generate_token():
+    """Trigger the OAuth browser flow to create/refresh token.json.
+
+    Requires credentials.json to be present.  Opens a local browser window
+    on the server machine — intended for localhost / teacher-laptop deployments.
+    Returns the resulting auth-status dict so the frontend can update immediately.
+    """
+    cs = _classroom_sync_import()
+    from pathlib import Path
+    from app.config import get_settings
+    settings = get_settings()
+
+    creds_path = Path(settings.google_credentials_file)
+    if not creds_path.exists():
+        raise HTTPException(
+            422,
+            f"credentials.json not found at {creds_path}. "
+            "Download it from GCP Console → APIs & Services → Credentials "
+            "and place it in backend/app/services/google_auth/.",
+        )
+
+    try:
+        # _get_services() will run the browser flow if token.json is absent / expired
+        cs._get_services()
+        return cs.get_auth_status()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"OAuth flow failed: {exc}") from exc
+
+
 @router.post("/{assignment_id}/ingest", response_model=SyncSummary)
 def ingest_submissions(
     assignment_id: str,

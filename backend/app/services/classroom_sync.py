@@ -387,6 +387,49 @@ def push_draft_grade(submission_id: str, score: float, db) -> None:
     )
 
 
+def push_assigned_grade(submission_id: str, score: float, db) -> None:
+    """PATCH assignedGrade and return the submission to students."""
+    classroom_svc, _ = _get_services()
+    course_id, cw_id, student_id = _get_submission_meta(submission_id, db)
+
+    resp = (
+        classroom_svc.courses()
+        .courseWork()
+        .studentSubmissions()
+        .list(courseId=course_id, courseWorkId=cw_id, userId=student_id)
+        .execute()
+    )
+    subs = resp.get("studentSubmissions", [])
+    if not subs:
+        raise ValueError(
+            f"No Classroom submission found for student {student_id} "
+            f"in course {course_id} / coursework {cw_id}"
+        )
+    classroom_sub_id = subs[0]["id"]
+
+    classroom_svc.courses().courseWork().studentSubmissions().patch(
+        courseId=course_id,
+        courseWorkId=cw_id,
+        id=classroom_sub_id,
+        updateMask="assignedGrade",
+        body={"assignedGrade": float(score)},
+    ).execute()
+
+    classroom_svc.courses().courseWork().studentSubmissions().return_(
+        courseId=course_id,
+        courseWorkId=cw_id,
+        id=classroom_sub_id,
+        body={},
+    ).execute()
+
+    log.info(
+        "push_assigned_grade: submission=%s student=%s score=%.2f → assignedGrade+return",
+        submission_id,
+        student_id,
+        score,
+    )
+
+
 def push_draft_grades_bulk(
     assignment_id: str,
     db,

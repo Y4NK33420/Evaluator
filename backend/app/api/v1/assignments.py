@@ -19,6 +19,7 @@ from app.schemas import (
     AssignmentPublishRequest,
     AssignmentPublishValidationOut,
     AssignmentPublishValidationRequest,
+    AssignmentSummaryOut,
     AssignmentUpdate,
 )
 
@@ -109,12 +110,51 @@ def create_assignment(body: AssignmentCreate, db: Session = Depends(get_db)):
     return a
 
 
+@router.get("/summary", response_model=list[AssignmentSummaryOut])
+def list_assignments_summary(course_id: str | None = None, db: Session = Depends(get_db)):
+    """List assignments enriched with per-row submission/grade counts."""
+    from app.models import Grade, Submission, ClassroomStatus
+    from sqlalchemy import func
+
+    q = db.query(Assignment)
+    if course_id:
+        q = q.filter(Assignment.course_id == course_id)
+    assignments = q.order_by(Assignment.created_at.desc()).all()
+
+    results = []
+    for a in assignments:
+        subs = db.query(Submission).filter(Submission.assignment_id == a.id).all()
+        sub_ids = [s.id for s in subs]
+        graded_count = 0
+        released_count = 0
+        if sub_ids:
+            graded_count = db.query(Grade).filter(
+                Grade.submission_id.in_(sub_ids),
+                Grade.active_version == True,
+            ).count()
+            released_count = db.query(Grade).filter(
+                Grade.submission_id.in_(sub_ids),
+                Grade.active_version == True,
+                Grade.classroom_status == ClassroomStatus.released,
+            ).count()
+        error_count = sum(1 for s in subs if s.status == "failed")
+        out = AssignmentSummaryOut.model_validate(a)
+        out.submission_count = len(subs)
+        out.graded_count     = graded_count
+        out.released_count   = released_count
+        out.error_count      = error_count
+        results.append(out)
+
+    return results
+
+
 @router.get("/", response_model=list[AssignmentOut])
 def list_assignments(course_id: str | None = None, db: Session = Depends(get_db)):
     q = db.query(Assignment)
     if course_id:
         q = q.filter(Assignment.course_id == course_id)
     return q.order_by(Assignment.created_at.desc()).all()
+
 
 
 @router.get("/{assignment_id}", response_model=AssignmentOut)

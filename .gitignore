@@ -66,3 +66,6 @@ logs/*
 !logs/*.ps1
 !logs/manual_artifacts/
 !logs/manual_artifacts/**
+
+# Local design/reference repositories (do not commit)
+references/

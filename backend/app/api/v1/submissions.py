@@ -10,12 +10,14 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.models import Assignment, AuditLog, Grade, Submission, SubmissionStatus
+from app.models import Assignment, AuditLog, ClassroomStatus, Grade, GradeSource, Submission, SubmissionStatus
 from app.schemas import (
     AuditLogOut,
     GradeOut,
     JobEnqueuedResponse,
+    ManualGradeOverrideRequest,
     OCRCorrectionRequest,
+    RegradeRequest,
     SubmissionOut,
 )
 from app.workers.ocr_tasks import run_ocr_task
@@ -87,6 +89,20 @@ async def upload_submission(
 
 # ── List / Get ────────────────────────────────────────────────────────────────
 
+@router.get("/", response_model=list[SubmissionOut])
+def list_all_submissions(
+    status: SubmissionStatus | None = None,
+    limit:  int = 200,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+):
+    """List submissions across all assignments (for dashboard / global views)."""
+    q = db.query(Submission)
+    if status:
+        q = q.filter(Submission.status == status)
+    return q.order_by(Submission.created_at.desc()).offset(offset).limit(limit).all()
+
+
 @router.get("/{assignment_id}", response_model=list[SubmissionOut])
 def list_submissions(
     assignment_id: str,
@@ -104,7 +120,12 @@ def get_submission(submission_id: str, db: Session = Depends(get_db)):
     s = db.get(Submission, submission_id)
     if not s:
         raise HTTPException(404, "Submission not found")
-    return s
+    # Enrich with assignment info
+    result = SubmissionOut.model_validate(s)
+    if s.assignment:
+        result.assignment_title     = s.assignment.title
+        result.assignment_max_marks = s.assignment.max_marks
+    return result
 
 
 # ── OCR Correction (TA edit → re-grade) ──────────────────────────────────────
@@ -147,7 +168,83 @@ def ocr_correction(
     return JobEnqueuedResponse(job_id=submission_id, submission_id=submission_id, status="re_grading")
 
 
-# ── Grade + Audit ─────────────────────────────────────────────────────────────
+# ── Re-grade ──────────────────────────────────────────────────────────────────
+
+@router.post("/{submission_id}/regrade", response_model=JobEnqueuedResponse)
+def regrade_submission(
+    submission_id: str,
+    body: RegradeRequest,
+    db:   Session = Depends(get_db),
+):
+    """Re-trigger AI grading on the current OCR text without changing OCR."""
+    sub = db.get(Submission, submission_id)
+    if not sub:
+        raise HTTPException(404, "Submission not found")
+    if not sub.ocr_result:
+        raise HTTPException(422, "No OCR result available – upload and process the submission first")
+
+    sub.status = SubmissionStatus.grading
+    db.add(AuditLog(
+        submission_id  = submission_id,
+        changed_by     = body.changed_by,
+        action         = "regrade_requested",
+        new_value_json = {"reason": body.reason},
+        reason         = body.reason,
+    ))
+    db.commit()
+
+    run_grading_task.delay(submission_id)
+    return JobEnqueuedResponse(job_id=submission_id, submission_id=submission_id, status="re_grading")
+
+
+# ── Manual grade override ─────────────────────────────────────────────────────
+
+@router.post("/{submission_id}/grade-override", response_model=GradeOut)
+def manual_grade_override(
+    submission_id: str,
+    body: ManualGradeOverrideRequest,
+    db:   Session = Depends(get_db),
+):
+    """TA fully overrides the grade — archives old grade, creates new active one."""
+    sub = db.get(Submission, submission_id)
+    if not sub:
+        raise HTTPException(404, "Submission not found")
+
+    # Deactivate all previous grade versions
+    old_grades = db.query(Grade).filter(
+        Grade.submission_id == submission_id,
+        Grade.active_version == True,
+    ).all()
+    old_grade_snapshot = None
+    for g in old_grades:
+        old_grade_snapshot = {"total_score": g.total_score, "source": g.source.value}
+        g.active_version = False
+
+    from app.models import GradeSource
+    new_grade = Grade(
+        submission_id   = submission_id,
+        active_version  = True,
+        total_score     = body.total_score,
+        breakdown_json  = body.breakdown_json,
+        source          = GradeSource.ta_manual,
+        classroom_status= ClassroomStatus.not_synced,
+        is_truncated    = False,
+    )
+    db.add(new_grade)
+    db.add(AuditLog(
+        submission_id  = submission_id,
+        changed_by     = body.changed_by,
+        action         = "manual_grade_override",
+        old_value_json = old_grade_snapshot,
+        new_value_json = {"total_score": body.total_score, "source": "TA_Manual"},
+        reason         = body.reason,
+    ))
+    sub.status = SubmissionStatus.graded
+    db.commit()
+    db.refresh(new_grade)
+    return new_grade
+
+
 
 @router.get("/{submission_id}/grade", response_model=GradeOut)
 def get_grade(submission_id: str, db: Session = Depends(get_db)):
