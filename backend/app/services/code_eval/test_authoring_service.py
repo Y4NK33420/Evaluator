@@ -147,6 +147,20 @@ def _validate_coverage(testcases: list[dict[str, Any]]) -> None:
                     f"empty/null expected_stdout — this would pass any output"
                 )
 
+    # Check for missing stdin discriminators: if ALL cases have stdin=null and argv=[],
+    # and there are multiple distinct expected_stdout values, that means each run of the
+    # same script (with no input) would always produce the same output — the test suite
+    # cannot distinguish which function is being tested.
+    stdin_values = [tc.get("stdin") for tc in testcases]
+    all_stdin_null = all(v is None or str(v).strip() == "" for v in stdin_values)
+    expected_outputs = {tc.get("expected_stdout") for tc in testcases}
+    if all_stdin_null and len(testcases) > 1 and len(expected_outputs) > 1:
+        errors.append(
+            "All test cases have stdin=null but expected different outputs — "
+            "the program cannot know which function to call without a stdin discriminator. "
+            "Add a stdin field to each testcase (line 1 = function name, remaining lines = args)."
+        )
+
     if errors:
         raise CoverageError(
             "Generated test cases failed coverage gate: " + "; ".join(errors)
@@ -209,16 +223,45 @@ def _parse_testcase_list(raw_list: list[Any]) -> list[TestCaseSpec]:
 
 # ── System instructions ───────────────────────────────────────────────────────
 
-_SYSTEM_INSTRUCTION = (
-    "You are an expert programming instructor designing test cases for automated grading. "
-    "Generate test cases that are pedagogically sound, cover common mistakes, and have "
-    "deterministic expected outputs. "
-    "Each testcase_class must be one of: happy_path, edge_case, invalid_input, performance, boundary. "
-    "The expected_stdout must be the EXACT output the correct program would produce, "
-    "including trailing newlines if applicable. "
-    "Do NOT include test cases whose expected output is ambiguous or runtime-dependent. "
-    "Weight happy_path cases at 1.0, edge_case/boundary at 1.5, invalid_input at 0.5."
-)
+_SYSTEM_INSTRUCTION = """
+You are an expert programming instructor designing automated test cases for a code evaluation system.
+
+CRITICAL EXECUTION MODEL — READ CAREFULLY:
+Each test case runs the student's entire source file as a standalone script:
+    python solution.py  (with stdin piped in, exit code checked, stdout compared)
+
+This means:
+1. For assignments with MULTIPLE functions (e.g. swap_case, find_second_largest, is_anagram),
+   each test case must invoke EXACTLY ONE function via stdin.
+   The solution MUST include a stdin-driven dispatcher:
+       if __name__ == "__main__":
+           import sys
+           lines = sys.stdin.read().strip().split("\\n")
+           fn_name = lines[0].strip()
+           # route to the correct function based on fn_name
+
+2. The stdin field for each test case must specify:
+   Line 1: function name to call
+   Remaining lines: arguments for that function (one per line, or space-separated list)
+   Example for swap_case("Hello"):
+       stdin: "swap_case\\nHello"
+       expected_stdout: "hELLO\\n"
+
+3. For SINGLE-function assignments or scripts that already produce one output per run,
+   stdin should contain the direct input to the program.
+
+4. NEVER generate test cases with stdin=null unless the program legitimately requires no input
+   and produces a fixed output regardless of input.
+
+5. The expected_stdout must EXACTLY BYTE-FOR-BYTE match what the correct program prints,
+   including trailing newlines. Python's print() adds a newline.
+
+6. Weight rules: happy_path=1.0, edge_case/boundary=1.5, invalid_input=0.5.
+
+7. Coverage rules: at least 2 happy_path cases, at least 1 edge_case case.
+
+8. Each testcase_class must be one of: happy_path, edge_case, invalid_input, performance, boundary.
+"""
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────
@@ -254,6 +297,20 @@ def generate_testcases_from_question_and_solution(
     classes_to_use = include_classes or list(_VALID_TESTCASE_CLASSES)
     model_name = settings.resolve_code_healing_model()
 
+    # Detect multi-function assignment from question text
+    import re as _re
+    fn_count = len(_re.findall(r"def \w+|function \w+|implement.{0,30}function|write.{0,30}function", question_text, _re.IGNORECASE))
+    is_multi_fn = fn_count > 1
+
+    dispatch_hint = (
+        "IMPORTANT: This is a multi-function assignment. Each testcase MUST have a stdin field. "
+        "Line 1 of stdin = function name to call. Remaining lines = arguments. "
+        "The solution must include a stdin-driven dispatcher in __main__ that reads the "
+        "function name from line 1 of stdin and calls the appropriate function."
+    ) if is_multi_fn else (
+        "Each testcase stdin should contain the direct program input."
+    )
+
     prompt_payload = {
         "task": "Generate test cases for automated code evaluation",
         "mode": TestAuthoringMode.QUESTION_AND_SOLUTION_TO_TESTS.value,
@@ -263,11 +320,13 @@ def generate_testcases_from_question_and_solution(
         "required_classes": classes_to_use,
         "question": question_text,
         "solution_code": solution_code[:8000],  # truncate for prompt safety
+        "execution_model": dispatch_hint,
         "constraints": [
             "All expected_stdout values must be exact byte-for-byte output of the solution",
-            "Use stdin input_mode unless the assignment clearly uses argv or files",
+            "Use stdin input_mode for all test cases",
             "Do not generate test cases that require network or filesystem access beyond /tmp",
             f"Generate at least {_COVERAGE_MIN_HAPPY_PATH} happy_path and {_COVERAGE_MIN_EDGE_CASE} edge_case cases",
+            dispatch_hint,
         ],
     }
 
@@ -354,6 +413,22 @@ def generate_solution_and_testcases_from_question(
     """
     model_name = settings.resolve_code_healing_model()
 
+    import re as _re
+    fn_count = len(_re.findall(r"def \w+|function \w+|implement.{0,30}function|write.{0,30}function", question_text, _re.IGNORECASE))
+    is_multi_fn = fn_count > 1
+
+    dispatch_hint = (
+        "IMPORTANT: This is a multi-function assignment. "
+        "The solution MUST include a stdin-driven dispatcher in the __main__ block that reads "
+        "line 1 from stdin as the function name, and remaining lines as arguments, then calls "
+        "the appropriate function and prints the result. "
+        "Each testcase stdin MUST be: Line 1 = function name, remaining lines = args. "
+        "Example stdin for swap_case('Hello'): 'swap_case\\nHello'"
+    ) if is_multi_fn else (
+        "The solution reads input from stdin and prints the result. "
+        "Each testcase stdin contains the direct program input."
+    )
+
     prompt_payload = {
         "task": "Generate a correct solution and test cases for automated code evaluation",
         "mode": TestAuthoringMode.QUESTION_TO_SOLUTION_AND_TESTS.value,
@@ -361,11 +436,14 @@ def generate_solution_and_testcases_from_question(
         "entrypoint": entrypoint,
         "target_count": num_cases,
         "question": question_text,
+        "execution_model": dispatch_hint,
         "constraints": [
             f"Write a correct {language} solution that solves the problem completely",
+            dispatch_hint,
             "Generate test cases whose expected_stdout is computed from the solution",
             f"Generate at least {_COVERAGE_MIN_HAPPY_PATH} happy_path and {_COVERAGE_MIN_EDGE_CASE} edge_case cases",
             "The solution must be self-contained (no external deps unless specified)",
+            "NEVER generate a testcase with stdin=null if the program output depends on which function is called",
         ],
     }
 

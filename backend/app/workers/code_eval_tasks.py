@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import SessionLocal
 from app.models import (
+    Assignment,
     CodeEvalAttempt,
     CodeEvalEnvironmentStatus,
     CodeEvalEnvironmentVersion,
@@ -25,6 +26,8 @@ from app.models import (
     CodeEvalJobStatus,
     Grade,
     GradeSource,
+    Submission,
+    SubmissionStatus,
 )
 from app.services.code_eval.contracts import AttemptResult, CodeEvalJobRequest, CodeEvalJobResult
 from app.services.code_eval.execution_service import execute_code_eval_job
@@ -123,6 +126,12 @@ def _write_grade(
 ) -> Grade | None:
     """Write a Grade row for the completed code-eval job. Returns Grade or None on failure."""
     try:
+        # Deactivate any existing active grade rows for this submission
+        db.query(Grade).filter(
+            Grade.submission_id == job.submission_id,
+            Grade.active_version == True,
+        ).update({"active_version": False}, synchronize_session=False)
+
         grade = Grade(
             submission_id=job.submission_id,
             active_version=True,
@@ -366,12 +375,14 @@ def run_code_eval_job_task(self, job_id: str):
         final_attempt_result = raw_attempt_result
 
         # ── AI Shim retry ─────────────────────────────────────────────────────
+        log.info(f"code_eval job={job_id}: raw_passed={raw_attempt_result.passed}, shim_retry_enabled={settings.code_eval_enable_shim_retry}, ai_shim_enabled={settings.code_eval_enable_ai_shim_generation}")
         if not raw_attempt_result.passed and settings.code_eval_enable_shim_retry:
             shim_decision = analyze_for_retrying_shim(request, raw_execution_artifacts)
 
             # Surface shim_warning even if not eligible (e.g. model was down)
             shim_warning = shim_decision.get("shim_warning")
 
+            log.info(f"code_eval job={job_id}: shim_decision eligible={shim_decision.get('eligible')} reason={shim_decision.get('reason')}")
             if bool(shim_decision.get("eligible")):
                 _transition(job, CodeEvalJobState.AI_ANALYZING)
                 db.commit()
@@ -418,27 +429,34 @@ def run_code_eval_job_task(self, job_id: str):
         # ── Finalizing ────────────────────────────────────────────────────────
         _transition(job, CodeEvalJobState.FINALIZING)
 
-        max_score = float(sum(test.weight for test in request.testcases))
+        assignment = db.get(Assignment, job.assignment_id)
+        assignment_max_marks = float(assignment.max_marks) if assignment and assignment.max_marks else 100.0
+
+        raw_max = float(sum(test.weight for test in request.testcases))
+        raw_score = float(final_attempt_result.score)
+
+        scale_factor = assignment_max_marks / raw_max if raw_max > 0 else 0.0
+        scaled_score = raw_score * scale_factor
 
         if final_attempt_result.passed:
             quality_payload = evaluate_code_quality(
                 request,
-                earned_score=final_attempt_result.score,
-                max_score=max_score,
+                earned_score=scaled_score,
+                max_score=assignment_max_marks,
                 execution_artifacts=final_execution_artifacts,
             )
             score_breakdown = build_score_breakdown(
-                correctness_score=final_attempt_result.score,
-                max_score=max_score,
+                correctness_score=scaled_score,
+                max_score=assignment_max_marks,
                 quality_payload=quality_payload,
             )
-            final_score = float(score_breakdown.get("total_score", final_attempt_result.score))
+            final_score = float(score_breakdown.get("total_score", scaled_score))
 
             final_result = CodeEvalJobResult(
                 job_id=job.id,
                 submission_id=job.submission_id,
                 total_score=final_score,
-                max_score=max_score,
+                max_score=assignment_max_marks,
                 status="COMPLETED",
                 attempts=attempts_for_result,
             )
@@ -455,7 +473,7 @@ def run_code_eval_job_task(self, job_id: str):
             job.error_message = None
 
             # ── Grade write-back ──────────────────────────────────────────────
-            grade = _write_grade(db, job, score_breakdown, quality_payload, max_score)
+            grade = _write_grade(db, job, score_breakdown, quality_payload, assignment_max_marks)
             if grade is None:
                 # Grade write failed — still complete the job but note it
                 final_payload["grade_write_warning"] = (
@@ -473,12 +491,12 @@ def run_code_eval_job_task(self, job_id: str):
                 "reason": "correctness_not_passed",
                 "weight_percent": float(request.quality_evaluation.weight_percent),
                 "mode": request.quality_evaluation.mode.value,
-                "correctness_score": float(final_attempt_result.score),
-                "max_score": max_score,
+                "correctness_score": float(scaled_score),
+                "max_score": assignment_max_marks,
             }
             failed_score_breakdown = build_score_breakdown(
-                correctness_score=final_attempt_result.score,
-                max_score=max_score,
+                correctness_score=scaled_score,
+                max_score=assignment_max_marks,
                 quality_payload=failed_quality_payload,
             )
             failed_error_code = (
@@ -502,8 +520,19 @@ def run_code_eval_job_task(self, job_id: str):
                 f"[{failed_error_code}] "
                 + (final_attempt_result.stderr or "Code evaluation failed.")
             )[:2000]
+            
+            # Grade write-back for partial/failed scores
+            grade = _write_grade(db, job, failed_score_breakdown, failed_quality_payload, assignment_max_marks)
+            if grade is None:
+                job.final_result_json["grade_write_warning"] = "Grade row could not be written."
+                
             _transition(job, CodeEvalJobState.FAILED)
 
+        # Update Submission status to graded
+        sub = db.get(Submission, job.submission_id)
+        if sub:
+            sub.status = SubmissionStatus.graded
+            
         db.commit()
         log.info(
             "code_eval_finish job=%s state=%s score=%.4f grade_id=%s",

@@ -107,8 +107,10 @@ class SubmissionOut(BaseModel):
     created_at:    datetime
     updated_at:    datetime
     # Enriched (computed from joined assignment)
-    assignment_title:     Optional[str] = None
-    assignment_max_marks: Optional[float] = None
+    assignment_title:             Optional[str] = None
+    assignment_max_marks:         Optional[float] = None
+    assignment_has_code_question: Optional[bool] = None
+    source_code:                  Optional[str] = None
 
 
 # ── Rubric ────────────────────────────────────────────────────────────────────

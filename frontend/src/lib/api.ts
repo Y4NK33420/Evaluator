@@ -119,6 +119,11 @@ export const api = {
         overrideGrade: (id: string, payload: { total_score: number; breakdown_json: Record<string, unknown>; reason: string; changed_by: string }) =>
             apiFetch<Grade>(`/submissions/${id}/grade-override`, { method: "POST", body: payload }),
         imageUrl: (id: string) => buildUrl(`/submissions/image/${id}`),
+        dispatchCodeEval: (id: string, opts?: { explicit_regrade?: boolean; changed_by?: string }) =>
+            apiFetch<{ job_id: string; submission_id: string; status: string }>(`/submissions/${id}/dispatch-code-eval`, {
+                method: "POST",
+                params: { explicit_regrade: opts?.explicit_regrade ?? false, changed_by: opts?.changed_by ?? "ta" },
+            }),
     },
 
     // ── Grades ───────────────────────────────────────────────────────────────
@@ -136,14 +141,18 @@ export const api = {
         },
         create: (assignmentId: string, content_json: Record<string, unknown>) =>
             apiFetch<Rubric>(`/rubrics/${assignmentId}`, { method: "POST", body: { content_json, source: "manual" } }),
-        generate: (assignmentId: string, masterAnswer: string) =>
-            apiFetch<Rubric>(`/rubrics/${assignmentId}/generate`, { method: "POST", body: { master_answer: masterAnswer } }),
+        generate: (assignmentId: string, assignmentText: string) =>
+            apiFetch<Rubric>(`/rubrics/${assignmentId}/generate`, { method: "POST", body: { assignment_text: assignmentText } }),
+        encodeNaturalLanguage: (assignmentId: string, naturalLanguageRubric: string) =>
+            apiFetch<Rubric>(`/rubrics/${assignmentId}/encode-natural-language`, { method: "POST", body: { natural_language_rubric: naturalLanguageRubric } }),
         approve: (rubricId: string, actor: string) =>
             apiFetch<Rubric>(`/rubrics/${rubricId}/approve`, { method: "POST", body: { approved_by: actor } }),
         update: (rubricId: string, content_json: Record<string, unknown>) =>
             apiFetch<Rubric>(`/rubrics/${rubricId}`, { method: "PATCH", body: { content_json } }),
         remove: (rubricId: string) =>
             apiFetch<void>(`/rubrics/${rubricId}`, { method: "DELETE" }),
+        listAll: (assignmentId: string) =>
+            apiFetch<Rubric[]>(`/rubrics/${assignmentId}`),
     },
 
     // ── Classroom ─────────────────────────────────────────────────────────────
@@ -180,6 +189,8 @@ export const api = {
         approvals: {
             list: (assignmentId: string) =>
                 apiFetch<ApprovalItem[]>("/code-eval/approvals", { params: { assignment_id: assignmentId } }),
+            create: (payload: { assignment_id: string; artifact_type: string; content_json: unknown; status: string; approved_by?: string }) =>
+                apiFetch<ApprovalItem>("/code-eval/approvals", { method: "POST", body: payload }),
             approve: (id: string, actor: string, reason?: string) =>
                 apiFetch<ApprovalItem>(`/code-eval/approvals/${id}/approve`, { method: "POST", body: { actor, reason } }),
             reject: (id: string, actor: string, reason: string) =>

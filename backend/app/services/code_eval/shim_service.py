@@ -100,9 +100,10 @@ _LANGUAGE_SHIM_INSTRUCTIONS = {
     "python": (
         "You are a code-eval healing agent for Python. Only fix interface mismatches such as "
         "stdin/argv/file-mode adaptation and minor formatting noise. "
+        "Remove hardcoded local print statements that cause stdout pollution. "
         "Never attempt to fix student logic. "
         "When testcase contracts indicate expected I/O differs from program wiring, "
-        "return fixable=true with a minimal adapter patch."
+        "return fixable=true and you MUST supply the FULL completely patched source string in the `updated_files` JSON dict keyed by filename."
     ),
     "c": (
         "You are a code-eval healing agent for C. Only fix interface mismatches such as "
@@ -542,7 +543,7 @@ def _ai_generated_patch_decision(
 
     schema = {
         "type": "OBJECT",
-        "required": ["fixable", "reason", "comparison_mode", "updated_files", "updated_entrypoint"],
+        "required": ["fixable", "reason", "comparison_mode", "patched_files", "updated_entrypoint"],
         "properties": {
             "fixable": {"type": "BOOLEAN"},
             "reason": {"type": "STRING"},
@@ -551,9 +552,16 @@ def _ai_generated_patch_decision(
                 "enum": ["strict", "whitespace_normalized"],
             },
             "updated_entrypoint": {"type": "STRING"},
-            "updated_files": {
-                "type": "OBJECT",
-                "additionalProperties": {"type": "STRING"},
+            "patched_files": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "required": ["filename", "content"],
+                    "properties": {
+                        "filename": {"type": "STRING"},
+                        "content": {"type": "STRING"},
+                    },
+                },
             },
             "confidence": {"type": "NUMBER"},
         },
@@ -629,13 +637,18 @@ def _ai_generated_patch_decision(
     fixable = bool(model_output.get("fixable"))
     reason = str(model_output.get("reason") or "")
     comparison_mode = str(model_output.get("comparison_mode") or "strict")
-    updated_files_raw = model_output.get("updated_files")
+    patched_files_raw = model_output.get("patched_files")
     updated_entrypoint = str(model_output.get("updated_entrypoint") or request.entrypoint)
 
     updated_files: dict[str, str] = {}
-    if isinstance(updated_files_raw, dict):
-        for path, content in updated_files_raw.items():
-            rel_path = str(path)
+    if isinstance(patched_files_raw, list):
+        for item in patched_files_raw:
+            if not isinstance(item, dict):
+                continue
+            rel_path = str(item.get("filename", ""))
+            content = item.get("content", "")
+            if not rel_path:
+                continue
             if not _safe_relative_path(rel_path):
                 log.warning(
                     "code_eval shim: AI returned unsafe path '%s' for lang=%s — rejecting patch",

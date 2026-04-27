@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
     Upload, Search, Filter, CheckCircle, XCircle, Clock, RefreshCw,
     FileText, X, ChevronRight, Download, Send, AlertTriangle,
-    Plus, Users, ArrowRight,
+    Plus, Users, ArrowRight, Code2,
 } from "lucide-react";
 import { PageShell, Sidebar } from "@/components/layout/Shell";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
@@ -48,15 +48,35 @@ function UploadPanel({
     onClose,
 }: { assignments: Assignment[]; onClose: () => void }) {
     const { toast } = useToast();
+    const [uploadMode, setUploadMode] = useState<"batch" | "single">("batch");
     const [selectedAssignment, setSelectedAssignment] = useState("");
     const [roster, setRoster] = useState<RosterEntry[]>([]);
     const [files, setFiles] = useState<File[]>([]);
     const [progresses, setProgresses] = useState<Record<string, "uploading" | "done" | "error">>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const singleFileRef = useRef<HTMLInputElement>(null);
     const qc = useQueryClient();
 
+    // Single upload state
+    const [singleStudentId, setSingleStudentId] = useState("");
+    const [singleStudentName, setSingleStudentName] = useState("");
+    const [singleFile, setSingleFile] = useState<File | null>(null);
+    const [singleUploading, setSingleUploading] = useState(false);
+
+    // Determine if selected assignment is coding
+    const selectedAssignmentObj = assignments.find(a => a.id === selectedAssignment);
+    const isCodingAssignment = selectedAssignmentObj?.has_code_question ?? false;
+
+    // File accept strings
+    const docAccept = ".pdf,.jpg,.jpeg,.png";
+    const codeAccept = ".py,.java,.cpp,.c,.js,.ts,.go,.rs,.zip";
+    const fileAccept = isCodingAssignment ? codeAccept : docAccept;
+    const fileHint = isCodingAssignment
+        ? "Code files (.py, .java, .cpp, .js, .go, .zip). Name by student ID (e.g. 21CS001.py)"
+        : "PDFs/images. Name by student ID (e.g. 21CS001.pdf)";
+
     const parseRosterCSV = (text: string) => {
-        const lines = text.trim().split("\n").slice(1); // skip header
+        const lines = text.trim().split("\n").slice(1);
         return lines.map(l => {
             const [id, name] = l.split(",").map(s => s.trim());
             return { student_id: id, student_name: name ?? "" };
@@ -100,6 +120,28 @@ function UploadPanel({
         toast("success", "Upload complete");
     };
 
+    const uploadSingle = async () => {
+        if (!selectedAssignment) { toast("error", "Select an assignment first"); return; }
+        if (!singleStudentId.trim()) { toast("error", "Enter a Student ID"); return; }
+        if (!singleFile) { toast("error", "Select a file to upload"); return; }
+        setSingleUploading(true);
+        try {
+            await api.submissions.upload(selectedAssignment, {
+                student_id: singleStudentId.trim(),
+                student_name: singleStudentName.trim() || singleStudentId.trim(),
+                file: singleFile,
+            });
+            qc.invalidateQueries({ queryKey: ["submissions"] });
+            toast("success", "Submission uploaded!", `${singleStudentName || singleStudentId}`);
+            setSingleStudentId(""); setSingleStudentName(""); setSingleFile(null);
+            onClose();
+        } catch (e: unknown) {
+            toast("error", "Upload failed", (e as Error).message);
+        } finally {
+            setSingleUploading(false);
+        }
+    };
+
     return (
         <div style={{
             position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 800,
@@ -116,129 +158,209 @@ function UploadPanel({
                 }}
                 onClick={e => e.stopPropagation()}
             >
-                <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-6)" }}>
+                <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-5)" }}>
                     <h2 style={{ fontSize: 16, fontWeight: 600 }}>Upload Submissions</h2>
                     <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={15} /></button>
                 </div>
 
-                {/* Step 1: Assignment */}
-                <div className="flex flex-col gap-4">
-                    <div className="input-group">
-                        <label className="input-label">1. Select Assignment</label>
-                        <select className="input" value={selectedAssignment} onChange={e => setSelectedAssignment(e.target.value)}>
-                            <option value="">Choose…</option>
-                            {assignments.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
-                        </select>
-                    </div>
-
-                    {/* Step 2: Roster CSV */}
-                    <div className="input-group">
-                        <label className="input-label">2. Upload Student Roster (CSV)</label>
-                        <div
-                            style={{
-                                border: "2px dashed var(--border-medium)", borderRadius: "var(--radius-lg)",
-                                padding: "var(--space-5)", textAlign: "center", cursor: "pointer",
-                                background: roster.length > 0 ? "var(--success-dim)" : "var(--bg-elevated)",
-                                transition: "all 0.15s",
-                            }}
-                            onClick={() => {
-                                const input = document.createElement("input");
-                                input.type = "file"; input.accept = ".csv";
-                                input.onchange = e => {
-                                    const f = (e.target as HTMLInputElement).files?.[0];
-                                    if (f) handleRosterFile(f);
-                                };
-                                input.click();
-                            }}
-                        >
-                            {roster.length > 0 ? (
-                                <div className="flex items-center justify-center gap-2" style={{ color: "var(--success)" }}>
-                                    <CheckCircle size={16} /> {roster.length} students loaded
-                                </div>
-                            ) : (
-                                <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
-                                    <Users size={20} style={{ margin: "0 auto var(--space-2)", opacity: 0.4 }} />
-                                    Drop CSV here or click — columns: <code style={{ fontFamily: "var(--font-mono)" }}>student_id,student_name</code>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Step 3: Files */}
-                    <div className="input-group">
-                        <label className="input-label">3. Upload Submission Files</label>
-                        <div
-                            style={{
-                                border: "2px dashed var(--border-medium)", borderRadius: "var(--radius-lg)",
-                                padding: "var(--space-5)", textAlign: "center", cursor: "pointer",
-                                background: files.length > 0 ? "var(--accent-dim)" : "var(--bg-elevated)",
-                            }}
-                            onClick={() => fileInputRef.current?.click()}
-                            onDragOver={e => e.preventDefault()}
-                            onDrop={e => {
-                                e.preventDefault();
-                                setFiles(Array.from(e.dataTransfer.files));
-                            }}
-                        >
-                            <input
-                                ref={fileInputRef} type="file" multiple accept=".pdf,.jpg,.jpeg,.png"
-                                style={{ display: "none" }}
-                                onChange={e => setFiles(Array.from(e.target.files ?? []))}
-                            />
-                            {files.length > 0 ? (
-                                <div style={{ color: "var(--accent)", fontSize: 13 }}>
-                                    <FileText size={16} style={{ margin: "0 auto var(--space-2)" }} />
-                                    {files.length} files selected
-                                </div>
-                            ) : (
-                                <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
-                                    <Upload size={20} style={{ margin: "0 auto var(--space-2)", opacity: 0.4 }} />
-                                    Drop PDFs / images or click. Files should be named by entry number (e.g. 21CS001.pdf)
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* File list with match status */}
-                    {files.length > 0 && (
-                        <div style={{ maxHeight: 200, overflow: "auto" }}>
-                            {files.map(f => {
-                                const match = matchFile(f);
-                                const prog = progresses[f.name];
-                                return (
-                                    <div key={f.name} style={{
-                                        display: "flex", alignItems: "center", gap: "var(--space-3)",
-                                        padding: "var(--space-2) var(--space-3)",
-                                        borderRadius: "var(--radius-sm)",
-                                        background: prog === "done" ? "var(--success-dim)" : prog === "error" ? "var(--danger-dim)" : "var(--bg-elevated)",
-                                        marginBottom: 4,
-                                    }}>
-                                        {prog === "done" ? <CheckCircle size={13} style={{ color: "var(--success)", flexShrink: 0 }} />
-                                            : prog === "error" ? <XCircle size={13} style={{ color: "var(--danger)", flexShrink: 0 }} />
-                                                : prog === "uploading" ? <RefreshCw size={13} style={{ color: "var(--accent)", animation: "spin 1s linear infinite", flexShrink: 0 }} />
-                                                    : match ? <CheckCircle size={13} style={{ color: "var(--success)", flexShrink: 0 }} />
-                                                        : <AlertTriangle size={13} style={{ color: "var(--warning)", flexShrink: 0 }} />}
-                                        <span className="font-mono text-xs truncate" style={{ flex: 1 }}>{f.name}</span>
-                                        <span style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0 }}>
-                                            {match ? match.student_name || match.student_id : roster.length ? "No match" : "Load roster"}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-
-                    <button
-                        className="btn btn-primary btn-lg"
-                        onClick={uploadAll}
-                        disabled={!selectedAssignment || files.length === 0}
-                    >
-                        <Upload size={14} /> Upload {files.length > 0 ? `${files.length} Files` : "Files"}
+                {/* Mode switch */}
+                <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: "var(--space-5)", borderBottom: "1px solid var(--border)", paddingBottom: "var(--space-3)" }}>
+                    <button className={`btn btn-sm ${uploadMode === "batch" ? "btn-primary" : "btn-ghost"}`}
+                        onClick={() => setUploadMode("batch")}>
+                        <Users size={12} /> Batch Upload
+                    </button>
+                    <button className={`btn btn-sm ${uploadMode === "single" ? "btn-primary" : "btn-ghost"}`}
+                        onClick={() => setUploadMode("single")}>
+                        <Plus size={12} /> Single Student
                     </button>
                 </div>
+
+                {/* Shared: assignment selector */}
+                <div className="input-group" style={{ marginBottom: "var(--space-4)" }}>
+                    <label className="input-label">Assignment</label>
+                    <select className="input" value={selectedAssignment} onChange={e => {
+                        setSelectedAssignment(e.target.value);
+                        setFiles([]); setSingleFile(null); setProgresses({});
+                    }}>
+                        <option value="">Choose assignment…</option>
+                        {assignments.map(a => (
+                            <option key={a.id} value={a.id}>
+                                {a.title}{a.has_code_question ? " 🖥 [Coding]" : ""}
+                            </option>
+                        ))}
+                    </select>
+                    {isCodingAssignment && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginTop: "var(--space-2)", padding: "var(--space-2) var(--space-3)", background: "var(--accent-dim)", borderRadius: "var(--radius)", fontSize: 12, color: "var(--accent)" }}>
+                            <Code2 size={13} /> Coding assignment — upload student code files (.py, .java, .cpp, etc.)
+                        </div>
+                    )}
+                </div>
+
+                {uploadMode === "batch" && (
+                    <div className="flex flex-col gap-4">
+                        {/* Roster CSV */}
+                        <div className="input-group">
+                            <label className="input-label">Student Roster (CSV)</label>
+                            <div
+                                style={{
+                                    border: "2px dashed var(--border-medium)", borderRadius: "var(--radius-lg)",
+                                    padding: "var(--space-5)", textAlign: "center", cursor: "pointer",
+                                    background: roster.length > 0 ? "var(--success-dim)" : "var(--bg-elevated)",
+                                    transition: "all 0.15s",
+                                }}
+                                onClick={() => {
+                                    const input = document.createElement("input");
+                                    input.type = "file"; input.accept = ".csv";
+                                    input.onchange = e => {
+                                        const f = (e.target as HTMLInputElement).files?.[0];
+                                        if (f) handleRosterFile(f);
+                                    };
+                                    input.click();
+                                }}
+                            >
+                                {roster.length > 0 ? (
+                                    <div className="flex items-center justify-center gap-2" style={{ color: "var(--success)" }}>
+                                        <CheckCircle size={16} /> {roster.length} students loaded
+                                    </div>
+                                ) : (
+                                    <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
+                                        <Users size={20} style={{ margin: "0 auto var(--space-2)", opacity: 0.4 }} />
+                                        Drop CSV or click — columns: <code style={{ fontFamily: "var(--font-mono)" }}>student_id,student_name</code>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Files */}
+                        <div className="input-group">
+                            <label className="input-label">Submission Files</label>
+                            <div
+                                style={{
+                                    border: "2px dashed var(--border-medium)", borderRadius: "var(--radius-lg)",
+                                    padding: "var(--space-5)", textAlign: "center", cursor: "pointer",
+                                    background: files.length > 0 ? "var(--accent-dim)" : "var(--bg-elevated)",
+                                }}
+                                onClick={() => fileInputRef.current?.click()}
+                                onDragOver={e => e.preventDefault()}
+                                onDrop={e => { e.preventDefault(); setFiles(Array.from(e.dataTransfer.files)); }}
+                            >
+                                <input ref={fileInputRef} type="file" multiple accept={fileAccept}
+                                    style={{ display: "none" }}
+                                    onChange={e => setFiles(Array.from(e.target.files ?? []))} />
+                                {files.length > 0 ? (
+                                    <div style={{ color: "var(--accent)", fontSize: 13 }}>
+                                        <FileText size={16} style={{ margin: "0 auto var(--space-2)" }} />
+                                        {files.length} files selected
+                                    </div>
+                                ) : (
+                                    <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
+                                        <Upload size={20} style={{ margin: "0 auto var(--space-2)", opacity: 0.4 }} />
+                                        {fileHint}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* File list with match status */}
+                        {files.length > 0 && (
+                            <div style={{ maxHeight: 200, overflow: "auto" }}>
+                                {files.map(f => {
+                                    const match = matchFile(f);
+                                    const prog = progresses[f.name];
+                                    const ext = f.name.split(".").pop() ?? "";
+                                    return (
+                                        <div key={f.name} style={{
+                                            display: "flex", alignItems: "center", gap: "var(--space-3)",
+                                            padding: "var(--space-2) var(--space-3)",
+                                            borderRadius: "var(--radius-sm)",
+                                            background: prog === "done" ? "var(--success-dim)" : prog === "error" ? "var(--danger-dim)" : "var(--bg-elevated)",
+                                            marginBottom: 4,
+                                        }}>
+                                            {prog === "done" ? <CheckCircle size={13} style={{ color: "var(--success)", flexShrink: 0 }} />
+                                                : prog === "error" ? <XCircle size={13} style={{ color: "var(--danger)", flexShrink: 0 }} />
+                                                    : prog === "uploading" ? <RefreshCw size={13} style={{ color: "var(--accent)", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+                                                        : match ? <CheckCircle size={13} style={{ color: "var(--success)", flexShrink: 0 }} />
+                                                            : <AlertTriangle size={13} style={{ color: "var(--warning)", flexShrink: 0 }} />}
+                                            {isCodingAssignment && <span style={{ fontSize: 10, fontWeight: 700, color: "var(--accent)", background: "var(--accent-dim)", padding: "1px 5px", borderRadius: 3, flexShrink: 0 }}>.{ext}</span>}
+                                            <span className="font-mono text-xs truncate" style={{ flex: 1 }}>{f.name}</span>
+                                            <span style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0 }}>
+                                                {match ? match.student_name || match.student_id : roster.length ? "No match" : "Load roster"}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        <button className="btn btn-primary btn-lg" onClick={uploadAll}
+                            disabled={!selectedAssignment || files.length === 0}>
+                            <Upload size={14} /> Upload {files.length > 0 ? `${files.length} Files` : "Files"}
+                        </button>
+                    </div>
+                )}
+
+                {uploadMode === "single" && (
+                    <div className="flex flex-col gap-4">
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
+                            <div className="input-group">
+                                <label className="input-label">Student ID *</label>
+                                <input className="input" placeholder="e.g. 21CS001"
+                                    value={singleStudentId} onChange={e => setSingleStudentId(e.target.value)} />
+                            </div>
+                            <div className="input-group">
+                                <label className="input-label">Student Name</label>
+                                <input className="input" placeholder="Full name (optional)"
+                                    value={singleStudentName} onChange={e => setSingleStudentName(e.target.value)} />
+                            </div>
+                        </div>
+
+                        <div className="input-group">
+                            <label className="input-label">
+                                {isCodingAssignment ? "Code File *" : "Submission File *"}
+                            </label>
+                            <div
+                                style={{
+                                    border: "2px dashed var(--border-medium)", borderRadius: "var(--radius-lg)",
+                                    padding: "var(--space-5)", textAlign: "center", cursor: "pointer",
+                                    background: singleFile ? "var(--accent-dim)" : "var(--bg-elevated)",
+                                }}
+                                onClick={() => singleFileRef.current?.click()}
+                                onDragOver={e => e.preventDefault()}
+                                onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) setSingleFile(f); }}
+                            >
+                                <input ref={singleFileRef} type="file" accept={fileAccept}
+                                    style={{ display: "none" }}
+                                    onChange={e => { const f = e.target.files?.[0]; if (f) setSingleFile(f); }} />
+                                {singleFile ? (
+                                    <div style={{ color: "var(--accent)", fontSize: 13 }}>
+                                        <FileText size={16} style={{ margin: "0 auto var(--space-2)" }} />
+                                        {singleFile.name}
+                                        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                                            {(singleFile.size / 1024).toFixed(1)} KB
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
+                                        <Upload size={20} style={{ margin: "0 auto var(--space-2)", opacity: 0.4 }} />
+                                        {isCodingAssignment
+                                            ? "Drop a code file (.py, .java, .cpp, .zip) or click"
+                                            : "Drop a PDF or image, or click to browse"}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <button className="btn btn-primary btn-lg" onClick={uploadSingle}
+                            disabled={!selectedAssignment || !singleStudentId.trim() || !singleFile || singleUploading}>
+                            {singleUploading
+                                ? <><RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} /> Uploading…</>
+                                : <><Upload size={14} /> Upload Submission</>}
+                        </button>
+                    </div>
+                )}
             </div>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div >
+        </div>
     );
 }
 

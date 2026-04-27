@@ -42,15 +42,19 @@ async def upload_submission(
     if not assignment:
         raise HTTPException(404, "Assignment not found")
 
-    # Deduplication: check hash before writing
     raw   = await file.read()
     sha   = hashlib.sha256(raw).hexdigest()
-    dupe  = db.query(Submission).filter(
-        Submission.assignment_id == assignment_id,
-        Submission.image_hash    == sha,
-    ).first()
-    if dupe:
-        raise HTTPException(409, f"Duplicate file: already recorded as submission {dupe.id}")
+    
+    # Deduplication: block exact file matches for DIFFERENT students,
+    # but only for written scans (simple code files might be identical boilerplate)
+    if not assignment.has_code_question:
+        dupe = db.query(Submission).filter(
+            Submission.assignment_id == assignment_id,
+            Submission.image_hash    == sha,
+            Submission.student_id    != student_id,
+        ).first()
+        if dupe:
+            raise HTTPException(409, f"Duplicate file: already recorded for student {dupe.student_id}")
 
     # Persist file
     upload_dir = Path(settings.uploads_dir) / assignment_id / student_id
@@ -82,8 +86,16 @@ async def upload_submission(
     db.commit()
     db.refresh(sub)
 
-    # Enqueue OCR
-    run_ocr_task.delay(sub.id)
+    if assignment.has_code_question:
+        # Code assignments: no OCR needed — the file IS the submission artifact.
+        # Set status to ocr_done so the submission is immediately ready for code-eval dispatch.
+        sub.status = SubmissionStatus.ocr_done
+        sub.ocr_result = None
+        db.commit()
+    else:
+        # Regular written assignments: enqueue OCR pipeline
+        run_ocr_task.delay(sub.id)
+
     return JobEnqueuedResponse(job_id=sub.id, submission_id=sub.id)
 
 
@@ -123,8 +135,19 @@ def get_submission(submission_id: str, db: Session = Depends(get_db)):
     # Enrich with assignment info
     result = SubmissionOut.model_validate(s)
     if s.assignment:
-        result.assignment_title     = s.assignment.title
-        result.assignment_max_marks = s.assignment.max_marks
+        result.assignment_title             = s.assignment.title
+        result.assignment_max_marks         = s.assignment.max_marks
+        result.assignment_has_code_question = s.assignment.has_code_question
+        
+        # Inject the uploaded code text for the frontend
+        if s.assignment.has_code_question and s.file_path:
+            fp = Path(s.file_path)
+            if fp.exists():
+                try:
+                    result.source_code = fp.read_text(errors="replace")
+                except Exception:
+                    pass
+
     return result
 
 
@@ -265,3 +288,211 @@ def get_audit_log(submission_id: str, db: Session = Depends(get_db)):
         .order_by(AuditLog.timestamp)
         .all()
     )
+
+
+# ── Dispatch code-eval job (one-click for coding submissions) ─────────────────
+
+@router.post("/{submission_id}/dispatch-code-eval", response_model=JobEnqueuedResponse)
+def dispatch_code_eval(
+    submission_id: str,
+    explicit_regrade: bool = False,
+    changed_by: str = "ta",
+    db: Session = Depends(get_db),
+):
+    """One-click dispatch of a code-eval job for a coding submission.
+
+    Reads the code file, resolves the assignment's published environment version
+    and approved test artifact, then creates and queues a CodeEvalJob.
+    Returns a JobEnqueuedResponse so the frontend can poll job status.
+    """
+    from app.models import (
+        CodeEvalApprovalArtifactType, CodeEvalApprovalRecord, CodeEvalApprovalStatus,
+        CodeEvalEnvironmentStatus, CodeEvalEnvironmentVersion, CodeEvalJob,
+        CodeEvalJobStatus, CodeEvalRegradePolicy,
+    )
+    from app.services.code_eval.contracts import (
+        CodeEvalJobRequest, EnvironmentSpec, ExecutionQuota,
+        LanguageRuntime, QualityEvaluationConfig, QualityEvaluationMode,
+        RegradePolicy, TestCaseSpec, InputMode,
+    )
+    from app.services.code_eval.test_authoring_service import draft_to_testcase_specs
+    from app.workers.code_eval_tasks import run_code_eval_job_task
+
+    sub = db.get(Submission, submission_id)
+    if not sub:
+        raise HTTPException(404, "Submission not found")
+
+    assignment = db.get(Assignment, sub.assignment_id)
+    if not assignment:
+        raise HTTPException(404, "Assignment not found")
+    if not assignment.has_code_question:
+        raise HTTPException(422, "Assignment does not have a coding question")
+    if not assignment.is_published:
+        raise HTTPException(409, "Assignment must be published before dispatching code-eval")
+
+    # ── Resolve environment version ────────────────────────────────────────────
+    env_version: CodeEvalEnvironmentVersion | None = None
+    if assignment.published_environment_version_id:
+        env_version = db.get(CodeEvalEnvironmentVersion, assignment.published_environment_version_id)
+    if env_version is None:
+        # Fall back to latest ready version for this assignment
+        env_version = (
+            db.query(CodeEvalEnvironmentVersion)
+            .filter(
+                CodeEvalEnvironmentVersion.assignment_id == sub.assignment_id,
+                CodeEvalEnvironmentVersion.status == CodeEvalEnvironmentStatus.ready,
+                CodeEvalEnvironmentVersion.is_active == True,
+            )
+            .order_by(CodeEvalEnvironmentVersion.version_number.desc())
+            .first()
+        )
+    if env_version is None:
+        raise HTTPException(
+            409,
+            "No ready environment version found for this assignment. "
+            "Build and publish an environment in the assignment's Environment tab first."
+        )
+    if env_version.status != CodeEvalEnvironmentStatus.ready:
+        raise HTTPException(409, f"Environment version is not ready (status={env_version.status.value})")
+
+    # ── Resolve approved test cases ────────────────────────────────────────────
+    tests_approval: CodeEvalApprovalRecord | None = (
+        db.query(CodeEvalApprovalRecord)
+        .filter(
+            CodeEvalApprovalRecord.assignment_id == sub.assignment_id,
+            CodeEvalApprovalRecord.artifact_type == CodeEvalApprovalArtifactType.ai_tests,
+            CodeEvalApprovalRecord.status == CodeEvalApprovalStatus.approved,
+        )
+        .order_by(CodeEvalApprovalRecord.version_number.desc())
+        .first()
+    )
+    if tests_approval is None:
+        raise HTTPException(
+            422,
+            "No approved test cases found for this assignment. "
+            "Generate and approve test cases in the assignment's Test Cases tab first."
+        )
+
+    # ── Read source file and map to configured entrypoint ───────────────────────
+    # We must resolve entrypoint *before* reading, to map the uploaded
+    # file (which might have any random name) to the expected entrypoint.
+    spec_json = env_version.spec_json if isinstance(env_version.spec_json, dict) else {}
+    raw_language = spec_json.get("language", "python")
+    raw_entrypoint = spec_json.get("entrypoint", "solution.py")
+    try:
+        language = LanguageRuntime(raw_language)
+    except ValueError:
+        language = LanguageRuntime.PYTHON
+
+    source_files: dict[str, str] = {}
+    if sub.file_path:
+        fp = Path(sub.file_path)
+        if fp.exists():
+            try:
+                source_files[raw_entrypoint] = fp.read_text(errors="replace")
+            except Exception:
+                source_files[raw_entrypoint] = ""
+
+    # ── Convert approved content_json to TestCaseSpec list ────────────────────
+    content = tests_approval.content_json or {}
+    testcases: list[TestCaseSpec] = []
+    raw_tc_list = content.get("testcases") or content.get("tests") or []
+    try:
+        # draft_to_testcase_specs normalizes both mode2/mode3 output formats
+        testcases = draft_to_testcase_specs(raw_tc_list)
+    except Exception:
+        # Fallback: minimal construction preserving all spec fields
+        for i, tc in enumerate(raw_tc_list):
+            if not isinstance(tc, dict):
+                continue
+            raw_mode = str(tc.get("input_mode") or "stdin").lower()
+            try:
+                im = InputMode(raw_mode)
+            except ValueError:
+                im = InputMode.STDIN
+            testcases.append(TestCaseSpec(
+                testcase_id=tc.get("testcase_id") or tc.get("id") or f"tc_{i+1:03d}",
+                stdin=tc.get("stdin") if tc.get("stdin") is not None else None,
+                argv=[str(a) for a in tc.get("argv", [])] if isinstance(tc.get("argv"), list) else [],
+                files={},
+                expected_stdout=tc.get("expected_stdout") if tc.get("expected_stdout") is not None else None,
+                expected_stderr=tc.get("expected_stderr") if tc.get("expected_stderr") is not None else None,
+                expected_exit_code=int(tc.get("expected_exit_code", 0)),
+                weight=float(tc.get("weight", 1.0)),
+                input_mode=im,
+            ))
+
+    if not testcases:
+        raise HTTPException(
+            422,
+            "The approved test artifact contains no valid test cases. "
+            "Regenerate and re-approve the test cases."
+        )
+
+    # ── Build environment spec ─────────────────────────────────────────────────
+    env_spec = EnvironmentSpec(
+        freeze_key=env_version.freeze_key or "",
+        runtime=raw_language,
+        image_reference=spec_json.get("image_reference"),
+    )
+
+    # ── Build the full job request ─────────────────────────────────────────────
+    request = CodeEvalJobRequest(
+        assignment_id=sub.assignment_id,
+        submission_id=submission_id,
+        language=language,
+        entrypoint=raw_entrypoint,
+        source_files=source_files,
+        testcases=testcases,
+        environment=env_spec,
+        quality_evaluation=QualityEvaluationConfig(mode=QualityEvaluationMode.DISABLED),
+        regrade_policy=RegradePolicy.NEW_ONLY_UNLESS_EXPLICIT,
+        quota=ExecutionQuota(),
+    )
+
+    # ── Check for existing completed job (honour regrade policy) ──────────────
+    if not explicit_regrade:
+        prior = (
+            db.query(CodeEvalJob)
+            .filter(
+                CodeEvalJob.submission_id == submission_id,
+                CodeEvalJob.status == CodeEvalJobStatus.COMPLETED,
+            )
+            .first()
+        )
+        if prior:
+            raise HTTPException(
+                409,
+                "Submission already has a completed code-eval job. "
+                "Pass explicit_regrade=true to force regrading."
+            )
+
+    # ── Create and queue the job ───────────────────────────────────────────────
+    job = CodeEvalJob(
+        assignment_id=sub.assignment_id,
+        submission_id=submission_id,
+        environment_version_id=env_version.id,
+        language=language.value,
+        entrypoint=raw_entrypoint,
+        request_json=request.model_dump(mode="json"),
+        quality_config_json=request.quality_evaluation.model_dump(mode="json"),
+        regrade_policy=CodeEvalRegradePolicy.new_only_unless_explicit,
+        explicit_regrade=explicit_regrade,
+    )
+    db.add(job)
+
+    sub.status = SubmissionStatus.grading
+    db.add(AuditLog(
+        submission_id=submission_id,
+        changed_by=changed_by,
+        action="code_eval_dispatched",
+        new_value_json={"job_id": job.id, "env_version_id": env_version.id, "num_testcases": len(testcases)},
+        reason="Code-eval job dispatched from submission detail page",
+    ))
+    db.commit()
+    db.refresh(job)
+
+    run_code_eval_job_task.delay(job.id)
+
+    return JobEnqueuedResponse(job_id=job.id, submission_id=submission_id, status="code_eval_queued")
+

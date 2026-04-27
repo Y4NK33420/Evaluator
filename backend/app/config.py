@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     code_eval_docker_force_no_network: bool = True
     code_eval_docker_auto_pull: bool = True
     code_eval_enable_shim_retry: bool = True
-    code_eval_enable_ai_shim_generation: bool = False
+    code_eval_enable_ai_shim_generation: bool = True
     code_eval_microvm_enable_adapter: bool = False
     code_eval_microvm_runtime_mode: str = "pending"
     code_eval_microvm_allow_fallback: bool = True

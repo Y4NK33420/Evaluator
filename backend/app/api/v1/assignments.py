@@ -63,33 +63,29 @@ def _build_publish_validation(
     }
 
     env_version = _resolve_publish_environment(db, assignment, requested_environment_version_id)
+
     if assignment.has_code_question:
-        checks["environment_selected"] = env_version is not None
-        if env_version is None:
-            checks.update(
-                {
-                    "environment_course_match": False,
-                    "environment_assignment_scope_valid": False,
-                    "environment_is_active": False,
-                    "environment_status_ready": False,
-                    "environment_freeze_key_present": False,
-                }
+        # Single env readiness check — true only when a ready, active version exists
+        env_ready = (
+            env_version is not None
+            and env_version.is_active
+            and env_version.status == CodeEvalEnvironmentStatus.ready
+        )
+        checks["environment_ready"] = env_ready
+
+        # Check approved test cases exist
+        from app.models import CodeEvalApprovalRecord, CodeEvalApprovalArtifactType, CodeEvalApprovalStatus
+        approved_tests = (
+            db.query(CodeEvalApprovalRecord)
+            .filter(
+                CodeEvalApprovalRecord.assignment_id == assignment.id,
+                CodeEvalApprovalRecord.artifact_type == CodeEvalApprovalArtifactType.ai_tests,
+                CodeEvalApprovalRecord.status == CodeEvalApprovalStatus.approved,
             )
-        else:
-            checks.update(
-                {
-                    "environment_course_match": env_version.course_id == assignment.course_id,
-                    "environment_assignment_scope_valid": (
-                        env_version.assignment_id is None
-                        or env_version.assignment_id == assignment.id
-                    ),
-                    "environment_is_active": bool(env_version.is_active),
-                    "environment_status_ready": (
-                        env_version.status == CodeEvalEnvironmentStatus.ready
-                    ),
-                    "environment_freeze_key_present": bool(env_version.freeze_key),
-                }
-            )
+            .first()
+            is not None
+        )
+        checks["test_cases_approved"] = approved_tests
 
     missing = [name for name, ok in checks.items() if not ok]
     return AssignmentPublishValidationOut(
@@ -99,6 +95,7 @@ def _build_publish_validation(
         missing=missing,
         environment_version_id=(env_version.id if env_version else None),
     )
+
 
 
 @router.post("/", response_model=AssignmentOut, status_code=201)

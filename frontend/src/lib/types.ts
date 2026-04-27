@@ -51,6 +51,8 @@ export interface Submission {
     // Enriched fields (from /submissions/detail/{id} full version)
     assignment_max_marks?: number;
     assignment_title?: string;
+    assignment_has_code_question?: boolean;
+    source_code?: string;
 }
 
 export interface OcrResult {
