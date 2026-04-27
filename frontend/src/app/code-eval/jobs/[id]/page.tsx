@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
     ArrowLeft, CheckCircle, XCircle, Clock, ChevronRight,
-    Terminal, Zap, RefreshCw, AlertTriangle, Code2, FileCode,
+    Terminal, Zap, RefreshCw, AlertTriangle, Code2,
 } from "lucide-react";
 import { PageShell } from "@/components/layout/Shell";
 import { api } from "@/lib/api";
@@ -21,7 +21,104 @@ const STAGE_ICON: Record<string, React.ReactNode> = {
     ai_analysis: <Zap size={13} />,
     shim_retry: <RefreshCw size={13} />,
     finalizing: <CheckCircle size={13} />,
+    EXECUTING_RAW: <Terminal size={13} />,
+    AI_ANALYZING: <Zap size={13} />,
+    RETRYING_SHIM: <RefreshCw size={13} />,
+    FINALIZING: <CheckCircle size={13} />,
 };
+
+function prettyStage(stage: string) {
+    return stage.replace(/_/g, " ").toLowerCase();
+}
+
+function JobFinalResult({ result }: { result: Record<string, unknown> }) {
+    const scoreBreakdown = result.score_breakdown as {
+        correctness_score?: number;
+        correctness_percent?: number;
+        total_score?: number;
+        total_percent?: number;
+        max_score?: number;
+        quality_applied?: boolean;
+        quality_mode?: string;
+    } | undefined;
+    const status = typeof result.status === "string" ? result.status : "UNKNOWN";
+    const errorCode = typeof result.error_code === "string" ? result.error_code : null;
+    const failedCases = (
+        (result.shim_decision as { failed_testcases?: Array<{ testcase_id?: string; decision_reason?: string; failure_tokens?: string[] }> } | undefined)?.failed_testcases
+        ?? []
+    );
+
+    return (
+        <div className="card" style={{ marginBottom: "var(--space-4)", padding: 0 }}>
+            <div style={{ padding: "var(--space-4)", borderBottom: "1px solid var(--border)", fontSize: 13, fontWeight: 600 }}>
+                Final Result
+            </div>
+            <div style={{ padding: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+                    <span className={`badge ${status === "COMPLETED" ? "badge-success" : status === "FAILED" ? "badge-danger" : "badge-default"}`}>
+                        {status}
+                    </span>
+                    {errorCode && <span className="badge badge-warning">{errorCode}</span>}
+                </div>
+
+                {scoreBreakdown && (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--space-3)" }}>
+                        <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", background: "var(--bg-elevated)" }}>
+                            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase" }}>Correctness</div>
+                            <div style={{ fontSize: 14, fontWeight: 700 }}>
+                                {scoreBreakdown.correctness_score ?? 0}
+                                {scoreBreakdown.max_score !== undefined ? ` / ${scoreBreakdown.max_score}` : ""}
+                            </div>
+                            {scoreBreakdown.correctness_percent !== undefined && (
+                                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{scoreBreakdown.correctness_percent}%</div>
+                            )}
+                        </div>
+                        <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", background: "var(--bg-elevated)" }}>
+                            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase" }}>Total</div>
+                            <div style={{ fontSize: 14, fontWeight: 700 }}>
+                                {scoreBreakdown.total_score ?? 0}
+                                {scoreBreakdown.max_score !== undefined ? ` / ${scoreBreakdown.max_score}` : ""}
+                            </div>
+                            {scoreBreakdown.total_percent !== undefined && (
+                                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{scoreBreakdown.total_percent}%</div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {failedCases.length > 0 && (
+                    <div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: "var(--space-2)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            Failed Testcases
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            {failedCases.map((tc, idx) => (
+                                <div
+                                    key={`${tc.testcase_id ?? "case"}-${idx}`}
+                                    style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", background: "var(--bg-base)" }}
+                                >
+                                    <div style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>{tc.testcase_id ?? "unknown_case"}</div>
+                                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                                        {[tc.decision_reason, ...(tc.failure_tokens ?? [])].filter(Boolean).join(" · ") || "mismatch"}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <details>
+                    <summary style={{ cursor: "pointer", fontSize: 12, color: "var(--text-muted)" }}>
+                        View raw JSON
+                    </summary>
+                    <pre style={{ marginTop: "var(--space-2)", padding: "var(--space-3)", fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-secondary)", background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", overflow: "auto", maxHeight: 320 }}>
+                        {JSON.stringify(result, null, 2)}
+                    </pre>
+                </details>
+            </div>
+        </div>
+    );
+}
 
 function AttemptCard({ attempt, index }: { attempt: CodeEvalAttempt; index: number }) {
     const [expanded, setExpanded] = useState(index === 0);
@@ -59,7 +156,7 @@ function AttemptCard({ attempt, index }: { attempt: CodeEvalAttempt; index: numb
                         {STAGE_ICON[attempt.stage] ?? <Code2 size={11} />}
                     </span>
                     <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                        {attempt.stage.replace(/_/g, " ")}
+                        {prettyStage(attempt.stage)}
                     </span>
                     {attempt.shim_used && (
                         <span className="badge badge-warning" style={{ fontSize: 10 }}>
@@ -129,14 +226,45 @@ function AttemptCard({ attempt, index }: { attempt: CodeEvalAttempt; index: numb
                             <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: "var(--space-2)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                                 Artifacts
                             </div>
-                            <pre style={{
-                                background: "var(--bg-base)", border: "1px solid var(--border)",
-                                borderRadius: "var(--radius-sm)", padding: "var(--space-3)",
-                                fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-secondary)",
-                                overflow: "auto", maxHeight: 200, margin: 0,
-                            }}>
-                                {JSON.stringify(attempt.artifacts_json, null, 2)}
-                            </pre>
+                            {Array.isArray((attempt.artifacts_json as Record<string, unknown>).testcases) ? (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                    {((attempt.artifacts_json as Record<string, unknown>).testcases as Array<{ testcase_id?: string; passed?: boolean; awarded_score?: number; weight?: number; failure_reason?: string | null }>).map((tc, idx) => (
+                                        <div
+                                            key={`${tc.testcase_id ?? "test"}-${idx}`}
+                                            style={{ border: `1px solid ${tc.passed ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`, borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", background: "var(--bg-base)" }}
+                                        >
+                                            <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)" }}>
+                                                <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+                                                    {tc.testcase_id ?? "unknown_case"}
+                                                </span>
+                                                <span style={{ fontSize: 11, fontWeight: 600, color: tc.passed ? "var(--success)" : "var(--danger)" }}>
+                                                    {(tc.awarded_score ?? 0)}/{tc.weight ?? 0}
+                                                </span>
+                                            </div>
+                                            {!tc.passed && tc.failure_reason && (
+                                                <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 2 }}>
+                                                    {tc.failure_reason}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <details>
+                                        <summary style={{ cursor: "pointer", fontSize: 12, color: "var(--text-muted)" }}>View raw artifacts</summary>
+                                        <pre style={{ marginTop: "var(--space-2)", background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-secondary)", overflow: "auto", maxHeight: 220 }}>
+                                            {JSON.stringify(attempt.artifacts_json, null, 2)}
+                                        </pre>
+                                    </details>
+                                </div>
+                            ) : (
+                                <pre style={{
+                                    background: "var(--bg-base)", border: "1px solid var(--border)",
+                                    borderRadius: "var(--radius-sm)", padding: "var(--space-3)",
+                                    fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-secondary)",
+                                    overflow: "auto", maxHeight: 200, margin: 0,
+                                }}>
+                                    {JSON.stringify(attempt.artifacts_json, null, 2)}
+                                </pre>
+                            )}
                         </div>
                     )}
                 </div>
@@ -235,16 +363,7 @@ export default function CodeEvalJobDetailPage() {
                 </div>
 
                 {/* Final result */}
-                {job.final_result_json && (
-                    <div className="card" style={{ marginBottom: "var(--space-4)", padding: 0 }}>
-                        <div style={{ padding: "var(--space-4)", borderBottom: "1px solid var(--border)", fontSize: 13, fontWeight: 600 }}>
-                            Final Result
-                        </div>
-                        <pre style={{ padding: "var(--space-4)", margin: 0, fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text-secondary)", overflow: "auto" }}>
-                            {JSON.stringify(job.final_result_json, null, 2)}
-                        </pre>
-                    </div>
-                )}
+                {job.final_result_json && <JobFinalResult result={job.final_result_json} />}
 
                 {/* Error */}
                 {job.error_message && (

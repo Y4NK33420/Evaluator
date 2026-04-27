@@ -1,16 +1,15 @@
 "use client";
-import React, { useState, useRef, useCallback, Suspense } from "react";
+import React, { useState, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-    Upload, Search, Filter, CheckCircle, XCircle, Clock, RefreshCw,
+    Upload, Search, CheckCircle, XCircle, RefreshCw,
     FileText, X, ChevronRight, Download, Send, AlertTriangle,
-    Plus, Users, ArrowRight, Code2,
+    Plus, Users, Code2,
 } from "lucide-react";
 import { PageShell, Sidebar } from "@/components/layout/Shell";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
-import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import type { Submission, SubmissionStatus, Assignment } from "@/lib/types";
 
@@ -45,11 +44,12 @@ interface RosterEntry { student_id: string; student_name: string; }
 
 function UploadPanel({
     assignments,
+    initialAssignmentId,
     onClose,
-}: { assignments: Assignment[]; onClose: () => void }) {
+}: { assignments: Assignment[]; initialAssignmentId?: string; onClose: () => void }) {
     const { toast } = useToast();
     const [uploadMode, setUploadMode] = useState<"batch" | "single">("batch");
-    const [selectedAssignment, setSelectedAssignment] = useState("");
+    const [selectedAssignment, setSelectedAssignment] = useState(initialAssignmentId ?? "");
     const [roster, setRoster] = useState<RosterEntry[]>([]);
     const [files, setFiles] = useState<File[]>([]);
     const [progresses, setProgresses] = useState<Record<string, "uploading" | "done" | "error">>({});
@@ -409,7 +409,11 @@ function SubmissionsPageInner() {
     const toggleSelect = (id: string) => {
         setSelected(prev => {
             const next = new Set(prev);
-            next.has(id) ? next.delete(id) : next.add(id);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
             return next;
         });
     };
@@ -446,6 +450,20 @@ function SubmissionsPageInner() {
     const failedSubmissions = submissions.filter(s => s.status === "failed");
     const pendingSubmissions = submissions.filter(s => ["pending", "processing", "ocr_done", "grading"].includes(s.status));
 
+    const updateAssignmentSelection = (nextAssignmentId: string) => {
+        setSelectedAssignmentId(nextAssignmentId);
+        setSelected(new Set());
+
+        const params = new URLSearchParams(searchParams.toString());
+        if (nextAssignmentId) {
+            params.set("assignmentId", nextAssignmentId);
+        } else {
+            params.delete("assignmentId");
+        }
+        const nextQuery = params.toString();
+        router.replace(nextQuery ? `/submissions?${nextQuery}` : "/submissions", { scroll: false });
+    };
+
     return (
         <PageShell sidebar={<Sidebar items={SIDEBAR_ITEMS} />}>
             {/* Header */}
@@ -480,7 +498,7 @@ function SubmissionsPageInner() {
                     className="input"
                     style={{ maxWidth: 320 }}
                     value={selectedAssignmentId}
-                    onChange={e => { setSelectedAssignmentId(e.target.value); setSelected(new Set()); }}
+                    onChange={e => updateAssignmentSelection(e.target.value)}
                 >
                     <option value="">Select assignment…</option>
                     {assignments.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
@@ -586,7 +604,11 @@ function SubmissionsPageInner() {
                             </thead>
                             <tbody>
                                 {filtered.map(sub => (
-                                    <tr key={sub.id} className="clickable" onClick={() => router.push(`/submissions/${sub.id}`)}>
+                                    <tr
+                                        key={sub.id}
+                                        className="clickable"
+                                        onClick={() => router.push(`/submissions/${sub.id}${selectedAssignmentId ? `?assignmentId=${selectedAssignmentId}` : ""}`)}
+                                    >
                                         <td onClick={e => { e.stopPropagation(); toggleSelect(sub.id); }}>
                                             <input type="checkbox" checked={selected.has(sub.id)} onChange={() => toggleSelect(sub.id)} />
                                         </td>
@@ -614,7 +636,13 @@ function SubmissionsPageInner() {
             )}
 
             {/* Upload panel */}
-            {showUpload && <UploadPanel assignments={assignments} onClose={() => setShowUpload(false)} />}
+            {showUpload && (
+                <UploadPanel
+                    assignments={assignments}
+                    initialAssignmentId={selectedAssignmentId}
+                    onClose={() => setShowUpload(false)}
+                />
+            )}
 
             {/* Release confirm */}
             <ConfirmModal

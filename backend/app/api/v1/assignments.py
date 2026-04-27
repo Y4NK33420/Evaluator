@@ -8,9 +8,15 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import (
     Assignment,
+    AuditLog,
+    CodeEvalApprovalRecord,
     CodeEvalEnvironmentStatus,
     CodeEvalEnvironmentVersion,
+    CodeEvalAttempt,
+    CodeEvalJob,
+    Grade,
     Rubric,
+    Submission,
 )
 from app.schemas import (
     AssignmentCreate,
@@ -179,6 +185,48 @@ def delete_assignment(assignment_id: str, db: Session = Depends(get_db)):
     a = db.get(Assignment, assignment_id)
     if not a:
         raise HTTPException(404, "Assignment not found")
+
+    # Explicitly delete dependent rows first to avoid SQLAlchemy nulling
+    # non-null FK columns (e.g. code_eval_approval_records.assignment_id).
+    submission_ids = [
+        sid
+        for (sid,) in db.query(Submission.id).filter(Submission.assignment_id == assignment_id).all()
+    ]
+    job_ids = [
+        jid
+        for (jid,) in db.query(CodeEvalJob.id).filter(CodeEvalJob.assignment_id == assignment_id).all()
+    ]
+
+    if job_ids:
+        db.query(CodeEvalAttempt).filter(CodeEvalAttempt.job_id.in_(job_ids)).delete(
+            synchronize_session=False
+        )
+
+    db.query(CodeEvalJob).filter(CodeEvalJob.assignment_id == assignment_id).delete(
+        synchronize_session=False
+    )
+    db.query(CodeEvalApprovalRecord).filter(
+        CodeEvalApprovalRecord.assignment_id == assignment_id
+    ).delete(synchronize_session=False)
+    db.query(Rubric).filter(Rubric.assignment_id == assignment_id).delete(
+        synchronize_session=False
+    )
+
+    if submission_ids:
+        db.query(AuditLog).filter(AuditLog.submission_id.in_(submission_ids)).delete(
+            synchronize_session=False
+        )
+        db.query(Grade).filter(Grade.submission_id.in_(submission_ids)).delete(
+            synchronize_session=False
+        )
+        db.query(Submission).filter(Submission.id.in_(submission_ids)).delete(
+            synchronize_session=False
+        )
+
+    db.query(CodeEvalEnvironmentVersion).filter(
+        CodeEvalEnvironmentVersion.assignment_id == assignment_id
+    ).delete(synchronize_session=False)
+
     db.delete(a)
     db.commit()
 

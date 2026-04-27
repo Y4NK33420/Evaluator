@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
     ArrowLeft, ChevronRight, Edit3, RefreshCw, Play,
@@ -71,6 +71,17 @@ function GradePanel({ grade, maxMarks }: { grade: { total_score: number; breakdo
 
 function GradeBreakdown({ fullResult }: { fullResult: Record<string, unknown> }) {
     const breakdown = fullResult?.breakdown as Record<string, { marks_awarded?: number; max_marks?: number; feedback?: string; is_truncated?: boolean }> | undefined;
+    const scoreBreakdown = fullResult?.score_breakdown as {
+        correctness_score?: number;
+        max_score?: number;
+        correctness_percent?: number;
+        quality_applied?: boolean;
+        quality_mode?: string;
+        quality_weight_percent?: number;
+        quality_score?: number | null;
+        total_score?: number;
+        total_percent?: number;
+    } | undefined;
     // testcase_results key for code-eval grades
     const testcaseResults = fullResult?.testcase_results as Array<{ testcase_id: string; passed: boolean; score: number; stdout?: string; stderr?: string }> | undefined;
     const stepScores = (fullResult?.score_details as Record<string, unknown> | undefined)?.rubric_step_scores as Array<{ question_id: string; step_id: string; step: string; marks_awarded: number; max_marks: number; feedback: string }> | undefined;
@@ -106,6 +117,52 @@ function GradeBreakdown({ fullResult }: { fullResult: Record<string, unknown> })
     }
 
     if (!breakdown || Object.keys(breakdown).length === 0) {
+        if (scoreBreakdown) {
+            return (
+                <div className="flex flex-col gap-2">
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
+                        Score Breakdown
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-2)" }}>
+                        <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", background: "var(--bg-elevated)" }}>
+                            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase" }}>Correctness</div>
+                            <div style={{ fontSize: 14, fontWeight: 700 }}>
+                                {scoreBreakdown.correctness_score ?? 0}
+                                {scoreBreakdown.max_score !== undefined ? ` / ${scoreBreakdown.max_score}` : ""}
+                            </div>
+                            {scoreBreakdown.correctness_percent !== undefined && (
+                                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{scoreBreakdown.correctness_percent}%</div>
+                            )}
+                        </div>
+                        <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", background: "var(--bg-elevated)" }}>
+                            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase" }}>Total</div>
+                            <div style={{ fontSize: 14, fontWeight: 700 }}>
+                                {scoreBreakdown.total_score ?? 0}
+                                {scoreBreakdown.max_score !== undefined ? ` / ${scoreBreakdown.max_score}` : ""}
+                            </div>
+                            {scoreBreakdown.total_percent !== undefined && (
+                                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{scoreBreakdown.total_percent}%</div>
+                            )}
+                        </div>
+                    </div>
+                    <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginTop: "var(--space-1)" }}>
+                        <span className="badge badge-default" style={{ fontSize: 10 }}>
+                            Quality {scoreBreakdown.quality_applied ? "applied" : "not applied"}
+                        </span>
+                        {scoreBreakdown.quality_mode && (
+                            <span className="badge badge-default" style={{ fontSize: 10 }}>
+                                {scoreBreakdown.quality_mode.replace(/_/g, " ")}
+                            </span>
+                        )}
+                        {scoreBreakdown.quality_weight_percent !== undefined && (
+                            <span className="badge badge-default" style={{ fontSize: 10 }}>
+                                weight {scoreBreakdown.quality_weight_percent}%
+                            </span>
+                        )}
+                    </div>
+                </div>
+            );
+        }
         return <div style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", padding: "var(--space-4)" }}>No breakdown available.</div>;
     }
 
@@ -187,6 +244,7 @@ function AuditPanel({ audit }: { audit: { action: string; changed_by: string; re
 export default function SubmissionDetailPage() {
     const { id } = useParams<{ id: string }>();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const qc = useQueryClient();
     const { actor } = useAuth();
     const { toast } = useToast();
@@ -203,6 +261,7 @@ export default function SubmissionDetailPage() {
     const [overrideBreakdown, setOverrideBreakdown] = useState("{}");
     const [overrideReason, setOverrideReason] = useState("");
     const [overrideJsonError, setOverrideJsonError] = useState<string | null>(null);
+    const assignmentIdFromQuery = searchParams.get("assignmentId");
 
     const { data: sub, isLoading: sLoading } = useQuery({
         queryKey: ["submission", id],
@@ -345,7 +404,7 @@ export default function SubmissionDetailPage() {
                 <div className="empty-state">
                     <AlertTriangle size={40} className="empty-icon" />
                     <div className="empty-title">Submission not found</div>
-                    <button className="btn btn-secondary" onClick={() => router.back()}>Go back</button>
+                    <button className="btn btn-secondary" onClick={() => router.push(backHref)}>Go back</button>
                 </div>
             </PageShell>
         );
@@ -356,9 +415,14 @@ export default function SubmissionDetailPage() {
     const isCoding = !!sub.assignment_has_code_question;
     const hasCompletedJob = codeEvalJobs.some(j => j.status === "COMPLETED");
     const hasActiveJob = codeEvalJobs.some(j => !["COMPLETED", "FAILED"].includes(j.status));
+    const backHref = sub.assignment_id
+        ? `/submissions?assignmentId=${sub.assignment_id}`
+        : assignmentIdFromQuery
+            ? `/submissions?assignmentId=${assignmentIdFromQuery}`
+            : "/submissions";
 
     /* ── Header action buttons ────────────────────────────────────────────── */
-    const HeaderActions = () => (
+    const headerActions = (
         <div className="flex items-center gap-2">
             {isCoding ? (
                 <>
@@ -408,7 +472,7 @@ export default function SubmissionDetailPage() {
             <div className="animate-fade-up">
                 {/* Breadcrumb */}
                 <div className="flex items-center gap-2" style={{ marginBottom: "var(--space-4)", fontSize: 13, color: "var(--text-muted)" }}>
-                    <button className="btn btn-ghost btn-sm" onClick={() => router.back()}>
+                    <button className="btn btn-ghost btn-sm" onClick={() => router.push(backHref)}>
                         <ArrowLeft size={13} /> Submissions
                     </button>
                     <ChevronRight size={13} />
@@ -430,7 +494,7 @@ export default function SubmissionDetailPage() {
                             </div>
                         )}
                     </div>
-                    <HeaderActions />
+                    {headerActions}
                 </div>
 
                 {/* ── CODING ASSIGNMENT LAYOUT ── */}
@@ -480,7 +544,7 @@ export default function SubmissionDetailPage() {
                                         Ready to evaluate
                                     </div>
                                     <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: "var(--space-3)" }}>
-                                        Click "Dispatch Eval" to run the approved test cases against this submission.
+                                        Click &quot;Dispatch Eval&quot; to run the approved test cases against this submission.
                                     </div>
                                     <button
                                         className="btn btn-primary btn-sm"
