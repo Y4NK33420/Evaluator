@@ -255,6 +255,14 @@ export interface ClassroomCoursework {
     updateTime?: string;
 }
 
+export interface ClassroomStudent {
+    userId: string;
+    fullName?: string;
+    givenName?: string;
+    familyName?: string;
+    emailAddress?: string;
+}
+
 export interface ClassroomSyncStatus extends SyncSummary {
     course_id?: string;
     classroom_id?: string | null;

@@ -836,6 +836,7 @@ function ClassroomTab({ assignment }: { assignment: Assignment }) {
     const [courseworkIdInput, setCourseworkIdInput] = useState(assignment.classroom_id || "");
     const [publishOnCreate, setPublishOnCreate] = useState(true);
     const [forceReingest, setForceReingest] = useState(false);
+    const [selectedSyncSubmissionIds, setSelectedSyncSubmissionIds] = useState<Set<string>>(new Set());
 
     const { data: status } = useQuery({
         queryKey: ["classroom-status", assignment.id],
@@ -939,6 +940,32 @@ function ClassroomTab({ assignment }: { assignment: Assignment }) {
             refreshAll();
         },
         onError: (e: Error) => toast("error", "Release failed", e.message),
+    });
+    const syncDraftSelected = useMutation({
+        mutationFn: () => api.grades.pushDraft([...selectedSyncSubmissionIds]),
+        onSuccess: (r) => {
+            toast("success", "Draft synced (selected)", `${(r.synced_as_draft as string[]).length} grades pushed.`);
+            setSelectedSyncSubmissionIds(new Set());
+            refreshAll();
+        },
+        onError: (e: Error) => toast("error", "Selected sync failed", e.message),
+    });
+    const releaseSelected = useMutation({
+        mutationFn: () => api.grades.release([...selectedSyncSubmissionIds]),
+        onSuccess: (r) => {
+            toast("success", "Grades released (selected)", `${(r.released as string[]).length} students notified.`);
+            setSelectedSyncSubmissionIds(new Set());
+            refreshAll();
+        },
+        onError: (e: Error) => toast("error", "Selected release failed", e.message),
+    });
+    const processSelected = useMutation({
+        mutationFn: () => api.submissions.processBulk([...selectedSyncSubmissionIds]),
+        onSuccess: (r) => {
+            toast("success", "Processing queued", `${(r.queued ?? []).length} submissions queued.`);
+            refreshAll();
+        },
+        onError: (e: Error) => toast("error", "Process queue failed", e.message),
     });
 
     const syncReady = (status?.sync_missing?.length ?? 0) === 0 && !!(courseworkIdInput.trim() || assignment.classroom_id);
@@ -1087,6 +1114,70 @@ function ClassroomTab({ assignment }: { assignment: Assignment }) {
                             {release.isPending ? "Releasing…" : "Release Grades"}
                         </button>
                     </div>
+                    {!!status?.submissions?.length && (
+                        <div className="card" style={{ marginTop: "var(--space-2)", padding: "var(--space-3)" }}>
+                            <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-2)" }}>
+                                <div style={{ fontSize: 12, fontWeight: 600 }}>Selected Student Push</div>
+                                <button
+                                    className="btn btn-ghost btn-sm"
+                                    onClick={() => {
+                                        const all = status.submissions.map(s => s.submission_id);
+                                        const allSelected = all.every(id => selectedSyncSubmissionIds.has(id));
+                                        setSelectedSyncSubmissionIds(allSelected ? new Set() : new Set(all));
+                                    }}
+                                >
+                                    {status.submissions.every(s => selectedSyncSubmissionIds.has(s.submission_id)) ? "Clear All" : "Select All"}
+                                </button>
+                            </div>
+                            <div style={{ maxHeight: 180, overflow: "auto", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}>
+                                {status.submissions.map((s) => (
+                                    <label key={s.submission_id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderBottom: "1px solid var(--border)" }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedSyncSubmissionIds.has(s.submission_id)}
+                                            onChange={(e) => {
+                                                setSelectedSyncSubmissionIds(prev => {
+                                                    const next = new Set(prev);
+                                                    if (e.target.checked) next.add(s.submission_id);
+                                                    else next.delete(s.submission_id);
+                                                    return next;
+                                                });
+                                            }}
+                                        />
+                                        <span style={{ fontSize: 12, flex: 1 }}>
+                                            {(s.student_name || s.student_id)} ({s.student_id})
+                                        </span>
+                                        <span className={`badge ${s.graded ? "badge-success" : "badge-default"}`} style={{ fontSize: 10 }}>
+                                            {s.graded ? "graded" : "ungraded"}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                            <div className="flex items-center gap-2" style={{ marginTop: "var(--space-2)" }}>
+                                <button
+                                    className="btn btn-primary btn-sm"
+                                    onClick={() => processSelected.mutate()}
+                                    disabled={processSelected.isPending || selectedSyncSubmissionIds.size === 0}
+                                >
+                                    {processSelected.isPending ? "Queueing…" : `Process Selected (${selectedSyncSubmissionIds.size})`}
+                                </button>
+                                <button
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={() => syncDraftSelected.mutate()}
+                                    disabled={syncDraftSelected.isPending || selectedSyncSubmissionIds.size === 0 || !authStatus?.authenticated || !authStatus?.has_required_scopes}
+                                >
+                                    {syncDraftSelected.isPending ? "Pushing…" : `Push Draft Selected (${selectedSyncSubmissionIds.size})`}
+                                </button>
+                                <button
+                                    className="btn btn-success btn-sm"
+                                    onClick={() => releaseSelected.mutate()}
+                                    disabled={releaseSelected.isPending || selectedSyncSubmissionIds.size === 0 || !authStatus?.authenticated || !authStatus?.has_required_scopes}
+                                >
+                                    {releaseSelected.isPending ? "Releasing…" : `Release Selected (${selectedSyncSubmissionIds.size})`}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                     <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
                         ⚠ Releasing grades marks them as returned in Google Classroom and makes them visible to students.
                     </div>
@@ -1107,9 +1198,10 @@ const PROFILE_DESCRIPTIONS: Record<string, string> = {
     "custom": "Custom environment defined via spec_json",
 };
 
-function EnvironmentTab({ assignment, onEnvSelected }: {
+function EnvironmentTab({ assignment, onEnvSelected, selectedEnvId }: {
     assignment: Assignment;
     onEnvSelected: (envId: string | null) => void;
+    selectedEnvId: string | null;
 }) {
     const { actor } = useAuth();
     const { toast } = useToast();
@@ -1126,7 +1218,7 @@ function EnvironmentTab({ assignment, onEnvSelected }: {
         enabled: envVersions.length === 0,
     });
 
-    const [selectedId, setSelectedId] = useState<string>("");
+    const [selectedId, setSelectedId] = useState<string>(selectedEnvId ?? "");
     const [buildingId, setBuildingId] = useState<string | null>(null);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [newEnvForm, setNewEnvForm] = useState({
@@ -1137,6 +1229,10 @@ function EnvironmentTab({ assignment, onEnvSelected }: {
     });
 
     const displayVersions = envVersions.length > 0 ? envVersions : allEnvVersions;
+
+    React.useEffect(() => {
+        setSelectedId(selectedEnvId ?? "");
+    }, [selectedEnvId]);
 
     const buildMutation = useMutation({
         mutationFn: (id: string) => {
@@ -1322,7 +1418,7 @@ function EnvironmentTab({ assignment, onEnvSelected }: {
                                 cursor: "pointer",
                                 transition: "all 0.15s",
                             }} onClick={() => {
-                                const next = isSelected ? "" : env.id;
+                                const next = env.id;
                                 setSelectedId(next);
                                 onEnvSelected(next || null);
                             }}>
@@ -1448,6 +1544,7 @@ function TestCasesTab({ assignment }: { assignment: Assignment }) {
         onSuccess: () => {
             toast("success", "Test cases generated!", "Review each case below — check stdin values carefully before approving.");
             qc.invalidateQueries({ queryKey: ["approvals", assignment.id] });
+            qc.invalidateQueries({ queryKey: ["approvals-page", assignment.id] });
         },
         onError: (e: Error) => toast("error", "Generation failed", e.message),
         onSettled: () => setGenerating(false)
@@ -1458,6 +1555,7 @@ function TestCasesTab({ assignment }: { assignment: Assignment }) {
         onSuccess: () => {
             toast("success", "Test cases approved", "They will be used for grading on next submission dispatch.");
             qc.invalidateQueries({ queryKey: ["approvals", assignment.id] });
+            qc.invalidateQueries({ queryKey: ["approvals-page", assignment.id] });
         },
         onError: (e: Error) => toast("error", "Approval failed", e.message),
     });
@@ -1734,12 +1832,12 @@ export default function AssignmentDetailPage() {
     });
     // Auto-select best env when versions load
     React.useEffect(() => {
-        if (selectedEnvId) return; // already chosen
+        if (selectedEnvId && envVersions.some((e: EnvironmentVersion) => e.id === selectedEnvId)) return;
         const best = envVersions.find((e: EnvironmentVersion) => e.status === "ready") ??
             envVersions.find((e: EnvironmentVersion) => e.status === "building") ??
             envVersions[0];
         if (best) setSelectedEnvId(best.id);
-    }, [envVersions]);
+    }, [envVersions, selectedEnvId]);
 
     // Live approvals — used for checklist test_cases check
     const { data: approvals = [] } = useQuery({
@@ -1877,7 +1975,7 @@ export default function AssignmentDetailPage() {
                     />
                 )}
                 {activeTab === "coding" && assignment.has_code_question && (
-                    <EnvironmentTab assignment={assignment} onEnvSelected={setSelectedEnvId} />
+                    <EnvironmentTab assignment={assignment} onEnvSelected={setSelectedEnvId} selectedEnvId={selectedEnvId} />
                 )}
                 {activeTab === "test_cases" && assignment.has_code_question && (
                     <TestCasesTab assignment={assignment} />

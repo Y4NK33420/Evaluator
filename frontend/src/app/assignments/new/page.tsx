@@ -117,6 +117,11 @@ export default function NewAssignmentPage() {
     const [codingLanguage, setCodingLanguage] = useState("python");
     const [entrypoint, setEntrypoint] = useState("solution.py");
     const [customEntrypoint, setCustomEntrypoint] = useState(false);
+    const [codingTestWeight, setCodingTestWeight] = useState("70");
+    const [codingQualityWeight, setCodingQualityWeight] = useState("30");
+    const [codingQualityRubric, setCodingQualityRubric] = useState(
+        "Evaluate readability, structure, naming, and edge-case handling."
+    );
 
     const STEPS = kind === "coding"
         ? ["Details", "Type", "Problem Setup", "Review"]
@@ -157,6 +162,30 @@ export default function NewAssignmentPage() {
                 } catch {
                     // Non-fatal — user can set up environment from the assignment page
                 }
+                // Auto-create baseline approved rubric with coding scoring policy
+                try {
+                    const tw = Math.max(0, parseFloat(codingTestWeight) || 0);
+                    const qw = Math.max(0, parseFloat(codingQualityWeight) || 0);
+                    await api.rubrics.create(a.id, {
+                        questions: [
+                            {
+                                id: "code_quality",
+                                description: "Code quality and engineering practices",
+                                max_marks: parseFloat(maxMarks) || 100,
+                                criteria: [],
+                            },
+                        ],
+                        scoring_policy: {
+                            coding: {
+                                rubric_weight: qw,
+                                testcase_weight: tw,
+                            },
+                        },
+                        coding_quality_rubric: codingQualityRubric.trim() || undefined,
+                    });
+                } catch {
+                    // Non-fatal; instructor can create rubric manually later.
+                }
                 toast("success", "Assignment created!", `"${a.title}" is ready — go to the Test Cases tab to generate test cases, then publish.`);
             } else if (rubricMode !== "later" && (assignmentContent.trim() || nlRubric.trim())) {
                 setGeneratingRubric(true);
@@ -184,7 +213,8 @@ export default function NewAssignmentPage() {
     });
 
     const canProceed0 = title.trim().length > 0;
-    const canProceed2 = kind === "coding" ? problemStatement.trim().length > 0 : true;
+    const codingWeightsValid = ((parseFloat(codingTestWeight) || 0) + (parseFloat(codingQualityWeight) || 0)) > 0;
+    const canProceed2 = kind === "coding" ? (problemStatement.trim().length > 0 && codingWeightsValid) : true;
 
     const next = () => { if (step < STEPS.length - 1) setStep(s => s + 1); };
     const back = () => { if (step > 0) setStep(s => s - 1); };
@@ -344,6 +374,38 @@ export default function NewAssignmentPage() {
                                 </span>
                             </div>
 
+                            {/* Weight knobs (prominent) */}
+                            <div className="input-group" style={{ marginBottom: "var(--space-5)" }}>
+                                <label className="input-label">Grading Weights (Coding)</label>
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
+                                    <div className="input-group" style={{ marginBottom: 0 }}>
+                                        <label className="input-label">Test Cases %</label>
+                                        <input
+                                            className="input"
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={codingTestWeight}
+                                            onChange={e => setCodingTestWeight(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="input-group" style={{ marginBottom: 0 }}>
+                                        <label className="input-label">Quality Rubric %</label>
+                                        <input
+                                            className="input"
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={codingQualityWeight}
+                                            onChange={e => setCodingQualityWeight(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <span className="input-hint">
+                                    Use `100/0` for tests-only, `0/100` for quality-only, or any mix. Sum must be greater than 0.
+                                </span>
+                            </div>
+
                             {/* Problem Statement */}
                             <div className="input-group">
                                 <label className="input-label">
@@ -359,6 +421,17 @@ export default function NewAssignmentPage() {
                                 <span className="input-hint">
                                     The more detail you provide (especially function names + sample I/O), the better the AI test cases will be.
                                 </span>
+                            </div>
+
+                            <div className="input-group">
+                                <label className="input-label">Quality Rubric Guidance</label>
+                                <textarea
+                                    className="input"
+                                    rows={4}
+                                    value={codingQualityRubric}
+                                    onChange={e => setCodingQualityRubric(e.target.value)}
+                                    placeholder="Optional guidance for AI quality review."
+                                />
                             </div>
 
                             {/* Info box */}
@@ -462,6 +535,8 @@ export default function NewAssignmentPage() {
                                     ...(kind === "coding" ? [
                                         { label: "Language", value: LANGUAGE_OPTIONS.find(l => l.value === codingLanguage)?.label ?? codingLanguage },
                                         { label: "Entrypoint", value: entrypoint },
+                                        { label: "Testcase Weight", value: codingTestWeight },
+                                        { label: "Quality Weight", value: codingQualityWeight },
                                     ] : [
                                         { label: "Rubric Setup", value: rubricMode === "ai" ? "AI will generate from assignment text" : rubricMode === "natural_language" ? "AI will encode natural-language rubric" : "Set up manually later" },
                                     ]),
@@ -519,7 +594,7 @@ export default function NewAssignmentPage() {
                     ) : (
                         <button className="btn btn-primary btn-lg"
                             onClick={() => createMutation.mutate()}
-                            disabled={isCreating}>
+                            disabled={isCreating || (kind === "coding" && !codingWeightsValid)}>
                             {isCreating
                                 ? generatingRubric ? "Generating rubric…" : "Creating…"
                                 : "Create Assignment"}

@@ -438,13 +438,27 @@ def run_code_eval_job_task(self, job_id: str):
         scale_factor = assignment_max_marks / raw_max if raw_max > 0 else 0.0
         scaled_score = raw_score * scale_factor
 
-        if final_attempt_result.passed:
-            quality_payload = evaluate_code_quality(
-                request,
-                earned_score=scaled_score,
-                max_score=assignment_max_marks,
-                execution_artifacts=final_execution_artifacts,
-            )
+        quality_weight = float(request.quality_evaluation.weight_percent)
+        quality_enabled = request.quality_evaluation.mode.value != "disabled" and quality_weight > 0
+        quality_payload = evaluate_code_quality(
+            request,
+            earned_score=scaled_score,
+            max_score=assignment_max_marks,
+            execution_artifacts=final_execution_artifacts,
+        ) if quality_enabled else {
+            "enabled": False,
+            "applied": False,
+            "reason": "quality_mode_disabled_or_weight_zero",
+            "weight_percent": quality_weight,
+            "mode": request.quality_evaluation.mode.value,
+            "correctness_score": float(scaled_score),
+            "max_score": assignment_max_marks,
+        }
+
+        quality_only_mode = quality_weight >= 99.999
+        treat_as_passed = bool(final_attempt_result.passed) or quality_only_mode
+
+        if treat_as_passed:
             score_breakdown = build_score_breakdown(
                 correctness_score=scaled_score,
                 max_score=assignment_max_marks,
@@ -485,11 +499,11 @@ def run_code_eval_job_task(self, job_id: str):
             _transition(job, CodeEvalJobState.COMPLETED)
 
         else:
-            failed_quality_payload = {
+            failed_quality_payload = quality_payload if quality_enabled else {
                 "enabled": False,
                 "applied": False,
                 "reason": "correctness_not_passed",
-                "weight_percent": float(request.quality_evaluation.weight_percent),
+                "weight_percent": quality_weight,
                 "mode": request.quality_evaluation.mode.value,
                 "correctness_score": float(scaled_score),
                 "max_score": assignment_max_marks,

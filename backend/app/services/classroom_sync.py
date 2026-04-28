@@ -193,6 +193,29 @@ def list_coursework(course_id: str, page_size: int = 30) -> list[dict]:
     return resp.get("courseWork", [])
 
 
+def list_course_students(course_id: str, page_size: int = 100) -> list[dict]:
+    """List enrolled students for a Classroom course."""
+    classroom_svc, _ = _get_services()
+    students: list[dict] = []
+    page_token: str | None = None
+    while True:
+        resp = (
+            classroom_svc.courses()
+            .students()
+            .list(
+                courseId=course_id,
+                pageSize=max(1, min(page_size, 100)),
+                pageToken=page_token,
+            )
+            .execute()
+        )
+        students.extend(resp.get("students", []))
+        page_token = resp.get("nextPageToken")
+        if not page_token:
+            break
+    return students
+
+
 def create_coursework_for_assignment(
     *,
     course_id: str,
@@ -363,7 +386,7 @@ def ingest_course_submissions(
 
     log.info("classroom_ingest: found %d submissions in Classroom", len(all_submissions))
 
-    summary = {"found": len(all_submissions), "skipped": 0, "ingested": 0, "errors": []}
+    summary = {"found": len(all_submissions), "skipped": 0, "ingested": 0, "errors": [], "submission_ids": []}
 
     for cs in all_submissions:
         student_id = cs.get("userId", "unknown")
@@ -473,7 +496,7 @@ def ingest_course_submissions(
             # Update in place when force_reingest
             existing.file_path = str(file_path)
             existing.image_hash = content_hash
-            existing.status = "pending"
+            existing.status = "ocr_done" if assignment.has_code_question else "pending"
             existing.ocr_result = None
             existing.error_message = None
             db.flush()
@@ -485,7 +508,7 @@ def ingest_course_submissions(
                 student_name=student_name,
                 file_path=str(file_path),
                 image_hash=content_hash,
-                status="pending",
+                status="ocr_done" if assignment.has_code_question else "pending",
             )
             db.add(sub)
             db.flush()
@@ -496,8 +519,20 @@ def ingest_course_submissions(
             student_id, sub_id, safe_name,
         )
         summary["ingested"] += 1
+        summary["submission_ids"].append(sub_id)
 
     db.commit()
+
+    # Auto-dispatch processing for ingested written submissions.
+    # (Coding submissions follow separate code-eval dispatch flow.)
+    if not assignment.has_code_question:
+        try:
+            from app.workers.ocr_tasks import run_ocr_task
+            for sid in summary["submission_ids"]:
+                run_ocr_task.delay(sid)
+        except Exception as exc:
+            log.warning("classroom_ingest: failed to enqueue OCR tasks: %s", exc)
+
     log.info("classroom_ingest complete: %s", summary)
     return summary
 

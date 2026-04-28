@@ -87,6 +87,10 @@ function GradeBreakdown({ fullResult }: { fullResult: Record<string, unknown> })
     const stepScores = (fullResult?.score_details as Record<string, unknown> | undefined)?.rubric_step_scores as Array<{ question_id: string; step_id: string; step: string; marks_awarded: number; max_marks: number; feedback: string }> | undefined;
     const model = fullResult?.model as string | undefined;
     const scoringMode = fullResult?.scoring_mode as string | undefined;
+    const qualityEval = fullResult?.quality_evaluation as {
+        quality_score?: number;
+        weight_percent?: number;
+    } | undefined;
 
     if (testcaseResults && testcaseResults.length > 0) {
         // Code-eval grade breakdown
@@ -118,6 +122,18 @@ function GradeBreakdown({ fullResult }: { fullResult: Record<string, unknown> })
 
     if (!breakdown || Object.keys(breakdown).length === 0) {
         if (scoreBreakdown) {
+            const maxScore = scoreBreakdown.max_score ?? 0;
+            const totalScore = scoreBreakdown.total_score ?? 0;
+            const qualityWeight = (scoreBreakdown.quality_weight_percent ?? qualityEval?.weight_percent ?? 0) / 100;
+            const rawQualityScore = scoreBreakdown.quality_score ?? qualityEval?.quality_score;
+            const qualityTotal = maxScore * qualityWeight;
+            const testcaseTotal = maxScore - qualityTotal;
+            const qualityMarks = (rawQualityScore !== undefined && rawQualityScore !== null)
+                ? maxScore * qualityWeight * (Number(rawQualityScore) / 100)
+                : null;
+            const correctnessMarks = qualityMarks !== null
+                ? totalScore - qualityMarks
+                : (scoreBreakdown.correctness_score ?? 0);
             return (
                 <div className="flex flex-col gap-2">
                     <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
@@ -125,13 +141,15 @@ function GradeBreakdown({ fullResult }: { fullResult: Record<string, unknown> })
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-2)" }}>
                         <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", background: "var(--bg-elevated)" }}>
-                            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase" }}>Correctness</div>
+                            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase" }}>Testcases</div>
                             <div style={{ fontSize: 14, fontWeight: 700 }}>
-                                {scoreBreakdown.correctness_score ?? 0}
-                                {scoreBreakdown.max_score !== undefined ? ` / ${scoreBreakdown.max_score}` : ""}
+                                {correctnessMarks.toFixed(2)}
+                                {` / ${testcaseTotal.toFixed(2)}`}
                             </div>
-                            {scoreBreakdown.correctness_percent !== undefined && (
-                                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{scoreBreakdown.correctness_percent}%</div>
+                            {scoreBreakdown.correctness_percent !== undefined && testcaseTotal > 0 && (
+                                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                                    {Math.round((correctnessMarks / testcaseTotal) * 100)}%
+                                </div>
                             )}
                         </div>
                         <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", background: "var(--bg-elevated)" }}>
@@ -145,6 +163,17 @@ function GradeBreakdown({ fullResult }: { fullResult: Record<string, unknown> })
                             )}
                         </div>
                     </div>
+                    {qualityMarks !== null && (
+                        <div style={{ marginTop: "var(--space-2)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", background: "var(--bg-elevated)" }}>
+                            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase" }}>Quality</div>
+                            <div style={{ fontSize: 14, fontWeight: 700 }}>
+                                {qualityMarks.toFixed(2)} / {qualityTotal.toFixed(2)}
+                            </div>
+                            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                                raw quality {rawQualityScore ?? 0}/100 · weight {scoreBreakdown.quality_weight_percent ?? qualityEval?.weight_percent ?? 0}%
+                            </div>
+                        </div>
+                    )}
                     <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginTop: "var(--space-1)" }}>
                         <span className="badge badge-default" style={{ fontSize: 10 }}>
                             Quality {scoreBreakdown.quality_applied ? "applied" : "not applied"}

@@ -27,6 +27,18 @@ router   = APIRouter(prefix="/submissions", tags=["submissions"])
 settings = get_settings()
 
 
+def _resolve_coding_weights_from_rubric(content_json: dict) -> tuple[float, float]:
+    policy = content_json.get("scoring_policy") if isinstance(content_json, dict) else None
+    coding = policy.get("coding") if isinstance(policy, dict) else None
+    if not isinstance(coding, dict):
+        raise ValueError("Missing scoring_policy.coding in approved rubric")
+    rw = float(coding.get("rubric_weight"))
+    tw = float(coding.get("testcase_weight"))
+    if rw < 0 or tw < 0 or (rw + tw) <= 0:
+        raise ValueError("Invalid rubric_weight/testcase_weight in approved rubric")
+    return rw, tw
+
+
 # ── Upload ────────────────────────────────────────────────────────────────────
 
 @router.post("/{assignment_id}/upload", response_model=JobEnqueuedResponse, status_code=202)
@@ -290,6 +302,63 @@ def get_audit_log(submission_id: str, db: Session = Depends(get_db)):
     )
 
 
+@router.delete("/{submission_id}", status_code=204)
+def delete_submission(submission_id: str, db: Session = Depends(get_db)):
+    """Delete a submission and its dependent grade/audit rows."""
+    sub = db.get(Submission, submission_id)
+    if not sub:
+        raise HTTPException(404, "Submission not found")
+
+    # Remove file from disk when present.
+    try:
+        if sub.file_path:
+            fp = Path(sub.file_path)
+            if fp.exists():
+                fp.unlink(missing_ok=True)
+            # best effort cleanup of now-empty student folder
+            parent = fp.parent
+            if parent.exists() and parent.is_dir():
+                try:
+                    parent.rmdir()
+                except OSError:
+                    pass
+    except Exception:
+        pass
+
+    db.query(AuditLog).filter(AuditLog.submission_id == submission_id).delete(synchronize_session=False)
+    db.query(Grade).filter(Grade.submission_id == submission_id).delete(synchronize_session=False)
+    db.delete(sub)
+    db.commit()
+
+
+@router.post("/bulk-delete", status_code=202)
+def bulk_delete_submissions(body: dict, db: Session = Depends(get_db)):
+    """Delete selected submissions in bulk."""
+    ids = body.get("submission_ids", [])
+    if not isinstance(ids, list) or not ids:
+        raise HTTPException(422, "submission_ids is required")
+    deleted = []
+    errors = []
+    for sid in ids:
+        sub = db.get(Submission, sid)
+        if not sub:
+            errors.append({"submission_id": sid, "error": "not found"})
+            continue
+        try:
+            if sub.file_path:
+                fp = Path(sub.file_path)
+                if fp.exists():
+                    fp.unlink(missing_ok=True)
+            db.query(AuditLog).filter(AuditLog.submission_id == sid).delete(synchronize_session=False)
+            db.query(Grade).filter(Grade.submission_id == sid).delete(synchronize_session=False)
+            db.delete(sub)
+            deleted.append(sid)
+        except Exception as exc:
+            errors.append({"submission_id": sid, "error": str(exc)})
+    db.commit()
+    return {"deleted": deleted, "errors": errors}
+
+
 # ── Dispatch code-eval job (one-click for coding submissions) ─────────────────
 
 @router.post("/{submission_id}/dispatch-code-eval", response_model=JobEnqueuedResponse)
@@ -355,7 +424,20 @@ def dispatch_code_eval(
     if env_version.status != CodeEvalEnvironmentStatus.ready:
         raise HTTPException(409, f"Environment version is not ready (status={env_version.status.value})")
 
-    # ── Resolve approved test cases ────────────────────────────────────────────
+    # ── Resolve approved rubric (weights + optional quality rubric text) ──────
+    approved_rubric = next((r for r in assignment.rubrics if r.approved), None)
+    if approved_rubric is None:
+        raise HTTPException(
+            422,
+            "No approved rubric found for this coding assignment. "
+            "Approve a rubric with coding scoring_policy first."
+        )
+    try:
+        rubric_weight, testcase_weight = _resolve_coding_weights_from_rubric(approved_rubric.content_json or {})
+    except Exception as exc:
+        raise HTTPException(422, f"Invalid coding scoring_policy in approved rubric: {exc}")
+
+    # ── Resolve approved test cases (only required when testcase_weight > 0) ──
     tests_approval: CodeEvalApprovalRecord | None = (
         db.query(CodeEvalApprovalRecord)
         .filter(
@@ -366,7 +448,7 @@ def dispatch_code_eval(
         .order_by(CodeEvalApprovalRecord.version_number.desc())
         .first()
     )
-    if tests_approval is None:
+    if testcase_weight > 0 and tests_approval is None:
         raise HTTPException(
             422,
             "No approved test cases found for this assignment. "
@@ -394,7 +476,7 @@ def dispatch_code_eval(
                 source_files[raw_entrypoint] = ""
 
     # ── Convert approved content_json to TestCaseSpec list ────────────────────
-    content = tests_approval.content_json or {}
+    content = (tests_approval.content_json or {}) if tests_approval is not None else {}
     testcases: list[TestCaseSpec] = []
     raw_tc_list = content.get("testcases") or content.get("tests") or []
     try:
@@ -422,12 +504,23 @@ def dispatch_code_eval(
                 input_mode=im,
             ))
 
-    if not testcases:
+    if testcase_weight > 0 and not testcases:
         raise HTTPException(
             422,
             "The approved test artifact contains no valid test cases. "
             "Regenerate and re-approve the test cases."
         )
+    if testcase_weight <= 0:
+        # Quality-only mode: use one non-scoring smoke testcase so executor can run.
+        testcases = [
+            TestCaseSpec(
+                testcase_id="quality_only_smoke",
+                weight=1e-6,
+                input_mode=InputMode.STDIN,
+                stdin="",
+                expected_exit_code=0,
+            )
+        ]
 
     # ── Build environment spec ─────────────────────────────────────────────────
     env_spec = EnvironmentSpec(
@@ -445,7 +538,20 @@ def dispatch_code_eval(
         source_files=source_files,
         testcases=testcases,
         environment=env_spec,
-        quality_evaluation=QualityEvaluationConfig(mode=QualityEvaluationMode.DISABLED),
+        quality_evaluation=QualityEvaluationConfig(
+            mode=(
+                QualityEvaluationMode.RUBRIC_ONLY
+                if rubric_weight > 0
+                else QualityEvaluationMode.DISABLED
+            ),
+            weight_percent=(rubric_weight / (rubric_weight + testcase_weight)) * 100.0,
+            rubric=(
+                (approved_rubric.content_json or {}).get("coding_quality_rubric")
+                or (approved_rubric.content_json or {}).get("quality_rubric")
+                or None
+            ),
+            mandatory_per_assignment=True,
+        ),
         regrade_policy=RegradePolicy.NEW_ONLY_UNLESS_EXPLICIT,
         quota=ExecutionQuota(),
     )
@@ -496,3 +602,67 @@ def dispatch_code_eval(
 
     return JobEnqueuedResponse(job_id=job.id, submission_id=submission_id, status="code_eval_queued")
 
+
+@router.post("/{submission_id}/process", response_model=JobEnqueuedResponse, status_code=202)
+def process_submission(submission_id: str, db: Session = Depends(get_db)):
+    """Queue the appropriate processing path for a submission."""
+    sub = db.get(Submission, submission_id)
+    if not sub:
+        raise HTTPException(404, "Submission not found")
+
+    # Coding submissions should go through code-eval dispatch, not OCR/grading.
+    if sub.assignment and sub.assignment.has_code_question:
+        return dispatch_code_eval(
+            submission_id=submission_id,
+            explicit_regrade=False,
+            changed_by="system",
+            db=db,
+        )
+
+    if not sub.ocr_result:
+        sub.status = SubmissionStatus.pending
+        db.commit()
+        run_ocr_task.delay(submission_id)
+        return JobEnqueuedResponse(job_id=submission_id, submission_id=submission_id, status="ocr_queued")
+
+    sub.status = SubmissionStatus.grading
+    db.commit()
+    run_grading_task.delay(submission_id)
+    return JobEnqueuedResponse(job_id=submission_id, submission_id=submission_id, status="grading_queued")
+
+
+@router.post("/process-bulk", status_code=202)
+def process_submissions_bulk(body: dict, db: Session = Depends(get_db)):
+    ids = body.get("submission_ids", [])
+    if not isinstance(ids, list) or not ids:
+        raise HTTPException(422, "submission_ids is required")
+
+    queued = []
+    errors = []
+    for sid in ids:
+        sub = db.get(Submission, sid)
+        if not sub:
+            errors.append({"submission_id": sid, "error": "not found"})
+            continue
+        try:
+            if sub.assignment and sub.assignment.has_code_question:
+                resp = dispatch_code_eval(
+                    submission_id=sid,
+                    explicit_regrade=False,
+                    changed_by="system",
+                    db=db,
+                )
+                queued.append({"submission_id": sid, "status": resp.status})
+                continue
+            if not sub.ocr_result:
+                sub.status = SubmissionStatus.pending
+                run_ocr_task.delay(sid)
+                queued.append({"submission_id": sid, "status": "ocr_queued"})
+            else:
+                sub.status = SubmissionStatus.grading
+                run_grading_task.delay(sid)
+                queued.append({"submission_id": sid, "status": "grading_queued"})
+        except Exception as exc:
+            errors.append({"submission_id": sid, "error": str(exc)})
+    db.commit()
+    return {"queued": queued, "errors": errors}

@@ -1,5 +1,5 @@
 import type {
-    ApprovalItem, Assignment, AssignmentSummary, ClassroomAuthStatus, ClassroomCoursework, ClassroomSyncStatus,
+    ApprovalItem, Assignment, AssignmentSummary, ClassroomAuthStatus, ClassroomCoursework, ClassroomStudent, ClassroomSyncStatus,
     CodeEvalJob, CodeEvalJobDetail, EnvironmentVersion, Grade,
     HealthResponse, PublishValidation, RuntimeStatus, Rubric,
     Submission, SyncSummary,
@@ -127,6 +127,18 @@ export const api = {
                 method: "POST",
                 params: { explicit_regrade: opts?.explicit_regrade ?? false, changed_by: opts?.changed_by ?? "ta" },
             }),
+        process: (id: string) =>
+            apiFetch<{ job_id: string; submission_id: string; status: string }>(`/submissions/${id}/process`, { method: "POST" }),
+        processBulk: (ids: string[]) =>
+            apiFetch<{ queued: Array<{ submission_id: string; status: string }>; errors: unknown[] }>(
+                "/submissions/process-bulk",
+                { method: "POST", body: { submission_ids: ids } },
+            ),
+        remove: (id: string) => apiFetch<void>(`/submissions/${id}`, { method: "DELETE" }),
+        bulkDelete: (ids: string[]) => apiFetch<{ deleted: string[]; errors: unknown[] }>(
+            "/submissions/bulk-delete",
+            { method: "POST", body: { submission_ids: ids } },
+        ),
     },
 
     // ── Grades ───────────────────────────────────────────────────────────────
@@ -170,6 +182,8 @@ export const api = {
         release: (assignmentId: string) => apiFetch<SyncSummary>(`/classroom/${assignmentId}/release`, { method: "POST" }),
         listCoursework: (courseId: string) =>
             apiFetch<{ course_id: string; items: ClassroomCoursework[] }>("/classroom/coursework", { params: { course_id: courseId } }),
+        listStudents: (courseId: string) =>
+            apiFetch<{ course_id: string; students: ClassroomStudent[] }>("/classroom/students", { params: { course_id: courseId } }),
         linkCoursework: (assignmentId: string, payload: { course_id: string; coursework_id: string }) =>
             apiFetch<{ assignment_id: string; course_id: string; coursework_id: string; coursework: ClassroomCoursework }>(
                 `/classroom/${assignmentId}/link-coursework`,

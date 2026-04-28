@@ -230,6 +230,35 @@ def list_coursework(course_id: str):
     }
 
 
+@router.get("/students")
+def list_students(course_id: str):
+    """List enrolled students for a Classroom course."""
+    cs = _classroom_sync_import()
+    try:
+        items = cs.list_course_students(course_id=course_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(503, str(exc))
+    except Exception as exc:
+        log.exception("student roster list failed for course %s", course_id)
+        raise HTTPException(500, f"Roster list failed: {exc}")
+
+    students = []
+    for item in items:
+        profile = item.get("profile", {})
+        name = profile.get("name", {})
+        students.append(
+            {
+                "userId": item.get("userId"),
+                "fullName": name.get("fullName"),
+                "givenName": name.get("givenName"),
+                "familyName": name.get("familyName"),
+                "emailAddress": profile.get("emailAddress"),
+            }
+        )
+
+    return {"course_id": course_id, "students": students}
+
+
 @router.post("/{assignment_id}/link-coursework")
 def link_coursework(
     assignment_id: str,

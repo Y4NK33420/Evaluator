@@ -1,8 +1,11 @@
 """Assignments CRUD."""
 
 from datetime import datetime, timezone
+import csv
+import io
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -54,15 +57,15 @@ def _build_publish_validation(
     assignment: Assignment,
     requested_environment_version_id: str | None,
 ) -> AssignmentPublishValidationOut:
-    approved_rubric_exists = (
+    approved_rubric = (
         db.query(Rubric)
         .filter(
             Rubric.assignment_id == assignment.id,
             Rubric.approved == True,
         )
         .first()
-        is not None
     )
+    approved_rubric_exists = approved_rubric is not None
 
     checks: dict[str, bool] = {
         "rubric_approved": approved_rubric_exists,
@@ -79,7 +82,19 @@ def _build_publish_validation(
         )
         checks["environment_ready"] = env_ready
 
-        # Check approved test cases exist
+        rubric_weight = 0.0
+        testcase_weight = 1.0
+        if approved_rubric and isinstance(approved_rubric.content_json, dict):
+            policy = approved_rubric.content_json.get("scoring_policy")
+            coding = policy.get("coding") if isinstance(policy, dict) else None
+            if isinstance(coding, dict):
+                try:
+                    rubric_weight = float(coding.get("rubric_weight", 0.0))
+                    testcase_weight = float(coding.get("testcase_weight", 1.0))
+                except (TypeError, ValueError):
+                    pass
+
+        # Check approved test cases only when testcase scoring is enabled
         from app.models import CodeEvalApprovalRecord, CodeEvalApprovalArtifactType, CodeEvalApprovalStatus
         approved_tests = (
             db.query(CodeEvalApprovalRecord)
@@ -91,7 +106,8 @@ def _build_publish_validation(
             .first()
             is not None
         )
-        checks["test_cases_approved"] = approved_tests
+        if testcase_weight > 0:
+            checks["test_cases_approved"] = approved_tests
 
     missing = [name for name, ok in checks.items() if not ok]
     return AssignmentPublishValidationOut(
@@ -288,3 +304,62 @@ def publish_assignment(
     db.commit()
     db.refresh(assignment)
     return AssignmentPublishOut(assignment=assignment, validation=validation)
+
+
+@router.get("/{assignment_id}/grades/csv")
+def download_assignment_grades_csv(assignment_id: str, db: Session = Depends(get_db)):
+    """Download current active grades for an assignment as CSV."""
+    assignment = db.get(Assignment, assignment_id)
+    if not assignment:
+        raise HTTPException(404, "Assignment not found")
+
+    submissions = (
+        db.query(Submission)
+        .filter(Submission.assignment_id == assignment_id)
+        .order_by(Submission.student_id.asc())
+        .all()
+    )
+
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(
+        [
+            "submission_id",
+            "student_id",
+            "student_name",
+            "status",
+            "total_score",
+            "max_marks",
+            "classroom_status",
+            "graded_at",
+        ]
+    )
+
+    for sub in submissions:
+        grade = (
+            db.query(Grade)
+            .filter(
+                Grade.submission_id == sub.id,
+                Grade.active_version == True,
+            )
+            .first()
+        )
+        writer.writerow(
+            [
+                sub.id,
+                sub.student_id,
+                sub.student_name or "",
+                (sub.status.value if hasattr(sub.status, "value") else str(sub.status)),
+                (grade.total_score if grade else ""),
+                assignment.max_marks,
+                ((grade.classroom_status.value if hasattr(grade.classroom_status, "value") else grade.classroom_status) if grade else ""),
+                (grade.graded_at.isoformat() if grade and grade.graded_at else ""),
+            ]
+        )
+
+    filename = f"{assignment.title or assignment.id}_grades.csv".replace(" ", "_")
+    return StreamingResponse(
+        iter([out.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
     Upload, Search, CheckCircle, XCircle, RefreshCw,
     FileText, X, ChevronRight, Download, Send, AlertTriangle,
-    Plus, Users, Code2,
+    Plus, Users, Code2, Trash2,
 } from "lucide-react";
 import { PageShell, Sidebar } from "@/components/layout/Shell";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
@@ -49,6 +49,7 @@ function UploadPanel({
 }: { assignments: Assignment[]; initialAssignmentId?: string; onClose: () => void }) {
     const { toast } = useToast();
     const [uploadMode, setUploadMode] = useState<"batch" | "single">("batch");
+    const [rosterMode, setRosterMode] = useState<"csv" | "classroom">("classroom");
     const [selectedAssignment, setSelectedAssignment] = useState(initialAssignmentId ?? "");
     const [roster, setRoster] = useState<RosterEntry[]>([]);
     const [files, setFiles] = useState<File[]>([]);
@@ -65,7 +66,19 @@ function UploadPanel({
 
     // Determine if selected assignment is coding
     const selectedAssignmentObj = assignments.find(a => a.id === selectedAssignment);
+    const classroomCourseId = (selectedAssignmentObj?.course_id || "").replace(/^classroom-/, "").trim();
     const isCodingAssignment = selectedAssignmentObj?.has_code_question ?? false;
+    const hasClassroomCourse = /^[0-9]{6,}$/.test(classroomCourseId);
+
+    const { data: classroomStudents, refetch: refetchClassroomStudents, isFetching: rosterLoading } = useQuery({
+        queryKey: ["classroom-roster", classroomCourseId],
+        queryFn: async () => {
+            if (!classroomCourseId) return [];
+            const res = await api.classroom.listStudents(classroomCourseId);
+            return res.students;
+        },
+        enabled: rosterMode === "classroom" && !!classroomCourseId,
+    });
 
     // File accept strings
     const docAccept = ".pdf,.jpg,.jpeg,.png";
@@ -95,6 +108,12 @@ function UploadPanel({
 
     const matchFile = (file: File): RosterEntry | null => {
         const base = file.name.replace(/\.[^.]+$/, "");
+        if (rosterMode === "classroom") {
+            const norm = base.toLowerCase().replace(/[^a-z0-9]+/g, "");
+            const byId = roster.find(r => r.student_id === base);
+            if (byId) return byId;
+            return roster.find(r => (r.student_name || "").toLowerCase().replace(/[^a-z0-9]+/g, "") === norm) ?? null;
+        }
         return roster.find(r => r.student_id === base) ?? null;
     };
 
@@ -181,6 +200,9 @@ function UploadPanel({
                     <select className="input" value={selectedAssignment} onChange={e => {
                         setSelectedAssignment(e.target.value);
                         setFiles([]); setSingleFile(null); setProgresses({});
+                        setRoster([]);
+                        setSingleStudentId("");
+                        setSingleStudentName("");
                     }}>
                         <option value="">Choose assignment…</option>
                         {assignments.map(a => (
@@ -198,38 +220,84 @@ function UploadPanel({
 
                 {uploadMode === "batch" && (
                     <div className="flex flex-col gap-4">
-                        {/* Roster CSV */}
-                        <div className="input-group">
-                            <label className="input-label">Student Roster (CSV)</label>
-                            <div
-                                style={{
-                                    border: "2px dashed var(--border-medium)", borderRadius: "var(--radius-lg)",
-                                    padding: "var(--space-5)", textAlign: "center", cursor: "pointer",
-                                    background: roster.length > 0 ? "var(--success-dim)" : "var(--bg-elevated)",
-                                    transition: "all 0.15s",
-                                }}
+                        <div className="flex items-center gap-2">
+                            <button
+                                className={`btn btn-sm ${rosterMode === "classroom" ? "btn-primary" : "btn-ghost"}`}
                                 onClick={() => {
-                                    const input = document.createElement("input");
-                                    input.type = "file"; input.accept = ".csv";
-                                    input.onchange = e => {
-                                        const f = (e.target as HTMLInputElement).files?.[0];
-                                        if (f) handleRosterFile(f);
-                                    };
-                                    input.click();
+                                    setRosterMode("classroom");
+                                    const mapped = (classroomStudents ?? []).map(s => ({
+                                        student_id: s.userId,
+                                        student_name: s.fullName || s.userId,
+                                    }));
+                                    setRoster(mapped);
                                 }}
                             >
-                                {roster.length > 0 ? (
-                                    <div className="flex items-center justify-center gap-2" style={{ color: "var(--success)" }}>
-                                        <CheckCircle size={16} /> {roster.length} students loaded
-                                    </div>
-                                ) : (
-                                    <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
-                                        <Users size={20} style={{ margin: "0 auto var(--space-2)", opacity: 0.4 }} />
-                                        Drop CSV or click — columns: <code style={{ fontFamily: "var(--font-mono)" }}>student_id,student_name</code>
-                                    </div>
-                                )}
-                            </div>
+                                Classroom Roster
+                            </button>
+                            <button
+                                className={`btn btn-sm ${rosterMode === "csv" ? "btn-primary" : "btn-ghost"}`}
+                                onClick={() => setRosterMode("csv")}
+                            >
+                                CSV Roster
+                            </button>
+                            {rosterMode === "classroom" && (
+                                <button
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={async () => {
+                                        const res = await refetchClassroomStudents();
+                                        const mapped = (res.data ?? []).map(s => ({
+                                            student_id: s.userId,
+                                            student_name: s.fullName || s.userId,
+                                        }));
+                                        setRoster(mapped);
+                                        toast("success", "Classroom roster pulled", `${mapped.length} students`);
+                                    }}
+                                    disabled={!hasClassroomCourse || rosterLoading}
+                                >
+                                    {rosterLoading ? <><RefreshCw size={12} style={{ animation: "spin 1s linear infinite" }} /> Pulling…</> : "Pull Students"}
+                                </button>
+                            )}
                         </div>
+                        {/* Roster CSV */}
+                        {rosterMode === "csv" ? (
+                            <div className="input-group">
+                                <label className="input-label">Student Roster (CSV)</label>
+                                <div
+                                    style={{
+                                        border: "2px dashed var(--border-medium)", borderRadius: "var(--radius-lg)",
+                                        padding: "var(--space-5)", textAlign: "center", cursor: "pointer",
+                                        background: roster.length > 0 ? "var(--success-dim)" : "var(--bg-elevated)",
+                                        transition: "all 0.15s",
+                                    }}
+                                    onClick={() => {
+                                        const input = document.createElement("input");
+                                        input.type = "file"; input.accept = ".csv";
+                                        input.onchange = e => {
+                                            const f = (e.target as HTMLInputElement).files?.[0];
+                                            if (f) handleRosterFile(f);
+                                        };
+                                        input.click();
+                                    }}
+                                >
+                                    {roster.length > 0 ? (
+                                        <div className="flex items-center justify-center gap-2" style={{ color: "var(--success)" }}>
+                                            <CheckCircle size={16} /> {roster.length} students loaded
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
+                                            <Users size={20} style={{ margin: "0 auto var(--space-2)", opacity: 0.4 }} />
+                                            Drop CSV or click — columns: <code style={{ fontFamily: "var(--font-mono)" }}>student_id,student_name</code>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{ fontSize: 12, color: "var(--text-muted)", padding: "var(--space-2) var(--space-3)", background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)" }}>
+                                {hasClassroomCourse
+                                    ? `Using Classroom course ${classroomCourseId}. Match by file name = Classroom userId or normalized full name.`
+                                    : "Selected assignment does not have a valid Classroom numeric course id yet."}
+                            </div>
+                        )}
 
                         {/* Files */}
                         <div className="input-group">
@@ -284,7 +352,7 @@ function UploadPanel({
                                             {isCodingAssignment && <span style={{ fontSize: 10, fontWeight: 700, color: "var(--accent)", background: "var(--accent-dim)", padding: "1px 5px", borderRadius: 3, flexShrink: 0 }}>.{ext}</span>}
                                             <span className="font-mono text-xs truncate" style={{ flex: 1 }}>{f.name}</span>
                                             <span style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0 }}>
-                                                {match ? match.student_name || match.student_id : roster.length ? "No match" : "Load roster"}
+                                                {match ? match.student_name || match.student_id : roster.length ? "No match" : (rosterMode === "classroom" ? "Pull students" : "Load roster")}
                                             </span>
                                         </div>
                                     );
@@ -301,6 +369,51 @@ function UploadPanel({
 
                 {uploadMode === "single" && (
                     <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-2">
+                            <button
+                                className={`btn btn-sm ${rosterMode === "classroom" ? "btn-primary" : "btn-ghost"}`}
+                                onClick={async () => {
+                                    setRosterMode("classroom");
+                                    const res = await refetchClassroomStudents();
+                                    const mapped = (res.data ?? []).map(s => ({
+                                        student_id: s.userId,
+                                        student_name: s.fullName || s.userId,
+                                    }));
+                                    setRoster(mapped);
+                                }}
+                                disabled={!hasClassroomCourse}
+                            >
+                                Classroom Mode
+                            </button>
+                            <button
+                                className={`btn btn-sm ${rosterMode === "csv" ? "btn-primary" : "btn-ghost"}`}
+                                onClick={() => setRosterMode("csv")}
+                            >
+                                Manual Mode
+                            </button>
+                        </div>
+                        {rosterMode === "classroom" && roster.length > 0 && (
+                            <div className="input-group">
+                                <label className="input-label">Select Student From Classroom</label>
+                                <select
+                                    className="input"
+                                    value={singleStudentId}
+                                    onChange={e => {
+                                        const id = e.target.value;
+                                        setSingleStudentId(id);
+                                        const found = roster.find(r => r.student_id === id);
+                                        setSingleStudentName(found?.student_name || "");
+                                    }}
+                                >
+                                    <option value="">Choose student…</option>
+                                    {roster.map(s => (
+                                        <option key={s.student_id} value={s.student_id}>
+                                            {s.student_name} ({s.student_id})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
                             <div className="input-group">
                                 <label className="input-label">Student ID *</label>
@@ -380,6 +493,7 @@ function SubmissionsPageInner() {
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [showUpload, setShowUpload] = useState(false);
     const [releaseConfirm, setReleaseConfirm] = useState(false);
+    const [deleteConfirm, setDeleteConfirm] = useState(false);
 
     const { data: assignments = [] } = useQuery({
         queryKey: ["assignments"],
@@ -444,6 +558,17 @@ function SubmissionsPageInner() {
             setSelected(new Set());
         },
         onError: (e: Error) => toast("error", "Push failed", e.message),
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: () => api.submissions.bulkDelete([...selected]),
+        onSuccess: r => {
+            toast("success", `Deleted ${(r.deleted as string[]).length} submissions`);
+            qc.invalidateQueries({ queryKey: ["submissions"] });
+            setSelected(new Set());
+            setDeleteConfirm(false);
+        },
+        onError: (e: Error) => toast("error", "Delete failed", e.message),
     });
 
     const gradedSubmissions = submissions.filter(s => s.status === "graded");
@@ -564,6 +689,9 @@ function SubmissionsPageInner() {
                     <button className="btn btn-ghost btn-sm" onClick={() => setSelected(new Set())}>
                         <X size={12} /> Clear
                     </button>
+                    <button className="btn btn-danger btn-sm" onClick={() => setDeleteConfirm(true)}>
+                        <Trash2 size={12} /> Delete
+                    </button>
                 </div>
             )}
 
@@ -654,6 +782,16 @@ function SubmissionsPageInner() {
                 onConfirm={() => releaseMutation.mutate()}
                 onCancel={() => setReleaseConfirm(false)}
                 loading={releaseMutation.isPending}
+            />
+            <ConfirmModal
+                open={deleteConfirm}
+                variant="danger"
+                title="Delete Selected Submissions"
+                message={`Delete ${selected.size} submissions permanently? Grades and audit history for them will also be deleted.`}
+                confirmText="Delete Submissions"
+                onConfirm={() => deleteMutation.mutate()}
+                onCancel={() => setDeleteConfirm(false)}
+                loading={deleteMutation.isPending}
             />
 
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
