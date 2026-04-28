@@ -1,0 +1,95 @@
+{
+  "test": "UC12: Approval coverage gate",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "under_coverage_create_status": 201,
+      "body": {
+        "id": "fde4f6ec-2b64-4a4c-94a2-6145a5f0bbe0",
+        "assignment_id": "5b3e6d84-4b21-4be6-98ec-86550f346f7a",
+        "artifact_type": "ai_tests",
+        "status": "pending",
+        "version_number": 1,
+        "content_json": {
+          "testcase_raw_with_classes": [
+            {
+              "testcase_id": "tc1",
+              "testcase_class": "happy_path",
+              "input_mode": "stdin",
+              "expected_exit_code": 0,
+              "weight": 1.0,
+              "expected_stdout": "1\n"
+            }
+          ]
+        },
+        "generation_metadata_json": null,
+        "requested_by": null,
+        "approved_by": null,
+        "approved_at": null,
+        "rejected_reason": null,
+        "created_at": "2026-04-13T20:23:58.519432Z",
+        "updated_at": "2026-04-13T20:23:58.519437Z"
+      }
+    },
+    {
+      "approve_under_coverage_status": 422,
+      "body": "{\"detail\":\"Generated test cases failed coverage gate: happy_path coverage insufficient: got 1, need >= 2; edge_case coverage insufficient: got 0, need >= 1\"}"
+    },
+    {
+      "full_coverage_create_status": 201
+    },
+    {
+      "approve_full_coverage_status": 200,
+      "body": {
+        "id": "0590385c-74f0-48af-9bb5-beb99565e420",
+        "assignment_id": "b767e61e-61e5-4387-9762-7c4a768e6c65",
+        "artifact_type": "ai_tests",
+        "status": "approved",
+        "version_number": 1,
+        "content_json": {
+          "testcase_raw_with_classes": [
+            {
+              "testcase_id": "tc1",
+              "testcase_class": "happy_path",
+              "input_mode": "stdin",
+              "expected_exit_code": 0,
+              "weight": 1.0,
+              "expected_stdout": "10\n"
+            },
+            {
+              "testcase_id": "tc2",
+              "testcase_class": "happy_path",
+              "input_mode": "stdin",
+              "expected_exit_code": 0,
+              "weight": 1.0,
+              "expected_stdout": "20\n"
+            },
+            {
+              "testcase_id": "tc3",
+              "testcase_class": "edge_case",
+              "input_mode": "stdin",
+              "expected_exit_code": 0,
+              "weight": 1.0,
+              "expected_stdout": "0\n"
+            },
+            {
+              "testcase_id": "tc4",
+              "testcase_class": "invalid_input",
+              "input_mode": "stdin",
+              "expected_exit_code": 1,
+              "weight": 0.5,
+              "expected_stdout": ""
+            }
+          ]
+        },
+        "generation_metadata_json": null,
+        "requested_by": null,
+        "approved_by": "test_instructor",
+        "approved_at": "2026-04-13T20:23:58.617224Z",
+        "rejected_reason": null,
+        "created_at": "2026-04-13T20:23:58.588920Z",
+        "updated_at": "2026-04-13T20:23:58.618800Z"
+      }
+    }
+  ]
+}

@@ -1,0 +1,300 @@
+{
+  "test": "UC6:  Static analysis blocks OS calls (3x)",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "case": "subprocess",
+      "result": {
+        "id": "76b71e83-c3c5-4dff-a7de-a7004d928bf4",
+        "assignment_id": "8c5d0bc6-27d2-4a88-82c0-ca2785d578bd",
+        "submission_id": "ef2e0066-32fb-4018-9680-1d21bfe17b03",
+        "environment_version_id": "cf748404-7afc-4061-9c21-98a1840cc0eb",
+        "status": "FAILED",
+        "language": "python",
+        "entrypoint": "solution.py",
+        "regrade_policy": "new_only_unless_explicit",
+        "explicit_regrade": false,
+        "attempt_count": 1,
+        "final_result_json": {
+          "job_id": "76b71e83-c3c5-4dff-a7de-a7004d928bf4",
+          "submission_id": "ef2e0066-32fb-4018-9680-1d21bfe17b03",
+          "status": "FAILED",
+          "error_code": "static_analysis_blocked",
+          "attempts": [
+            {
+              "stage": "EXECUTING_RAW",
+              "passed": false,
+              "exit_code": 40,
+              "stdout": "",
+              "stderr": "Static analysis blocked execution due to forbidden patterns.",
+              "score": 0.0,
+              "shim_used": false,
+              "shim_source": null
+            }
+          ],
+          "attempt_artifacts": [
+            {
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "shim_used": false,
+              "executor": "static_analysis_gate",
+              "error_code": "static_analysis_blocked",
+              "comparison_mode": "strict"
+            }
+          ],
+          "static_analysis": {
+            "blocked": true,
+            "language": "python",
+            "violations": [
+              {
+                "file": "solution.py",
+                "line": 1,
+                "rule": "python_forbidden_import",
+                "message": "Forbidden import 'subprocess'"
+              },
+              {
+                "file": "solution.py",
+                "line": 2,
+                "rule": "python_forbidden_call",
+                "message": "Forbidden call 'subprocess.run'"
+              }
+            ]
+          }
+        },
+        "error_message": "[static_analysis_blocked] Static analysis blocked execution due to forbidden patterns.",
+        "queued_at": "2026-04-13T20:23:28.274607Z",
+        "started_at": "2026-04-13T20:23:28.287896Z",
+        "finished_at": "2026-04-13T20:23:28.300357Z",
+        "created_at": "2026-04-13T20:23:28.274612Z",
+        "updated_at": "2026-04-13T20:23:28.300761Z",
+        "attempts": [
+          {
+            "id": "95116e02-2c20-4440-bd29-1396170998cb",
+            "job_id": "76b71e83-c3c5-4dff-a7de-a7004d928bf4",
+            "attempt_index": 1,
+            "stage": "EXECUTING_RAW",
+            "passed": false,
+            "exit_code": 40,
+            "score": 0.0,
+            "stdout": "",
+            "stderr": "Static analysis blocked execution due to forbidden patterns.",
+            "shim_used": false,
+            "shim_source": null,
+            "artifacts_json": {
+              "executor": "static_analysis_gate",
+              "error_code": "static_analysis_blocked",
+              "comparison_mode": "strict",
+              "blocked": true,
+              "language": "python",
+              "violations": [
+                {
+                  "file": "solution.py",
+                  "line": 1,
+                  "rule": "python_forbidden_import",
+                  "message": "Forbidden import 'subprocess'"
+                },
+                {
+                  "file": "solution.py",
+                  "line": 2,
+                  "rule": "python_forbidden_call",
+                  "message": "Forbidden call 'subprocess.run'"
+                }
+              ]
+            },
+            "started_at": "2026-04-13T20:23:28.291681Z",
+            "finished_at": "2026-04-13T20:23:28.293674Z",
+            "created_at": "2026-04-13T20:23:28.295175Z"
+          }
+        ]
+      }
+    },
+    {
+      "case": "os_system",
+      "result": {
+        "id": "711c4a87-c917-4625-9982-7c7532818f67",
+        "assignment_id": "14fd8bff-8c60-4cfd-a663-076b8d084b37",
+        "submission_id": "11ccec66-efe2-40aa-acf8-59a0da613c35",
+        "environment_version_id": "cf748404-7afc-4061-9c21-98a1840cc0eb",
+        "status": "FAILED",
+        "language": "python",
+        "entrypoint": "solution.py",
+        "regrade_policy": "new_only_unless_explicit",
+        "explicit_regrade": false,
+        "attempt_count": 1,
+        "final_result_json": {
+          "job_id": "711c4a87-c917-4625-9982-7c7532818f67",
+          "submission_id": "11ccec66-efe2-40aa-acf8-59a0da613c35",
+          "status": "FAILED",
+          "error_code": "static_analysis_blocked",
+          "attempts": [
+            {
+              "stage": "EXECUTING_RAW",
+              "passed": false,
+              "exit_code": 40,
+              "stdout": "",
+              "stderr": "Static analysis blocked execution due to forbidden patterns.",
+              "score": 0.0,
+              "shim_used": false,
+              "shim_source": null
+            }
+          ],
+          "attempt_artifacts": [
+            {
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "shim_used": false,
+              "executor": "static_analysis_gate",
+              "error_code": "static_analysis_blocked",
+              "comparison_mode": "strict"
+            }
+          ],
+          "static_analysis": {
+            "blocked": true,
+            "language": "python",
+            "violations": [
+              {
+                "file": "solution.py",
+                "line": 2,
+                "rule": "python_forbidden_call",
+                "message": "Forbidden call 'os.system'"
+              }
+            ]
+          }
+        },
+        "error_message": "[static_analysis_blocked] Static analysis blocked execution due to forbidden patterns.",
+        "queued_at": "2026-04-13T20:23:29.780424Z",
+        "started_at": "2026-04-13T20:23:29.795409Z",
+        "finished_at": "2026-04-13T20:23:29.808757Z",
+        "created_at": "2026-04-13T20:23:29.780429Z",
+        "updated_at": "2026-04-13T20:23:29.809326Z",
+        "attempts": [
+          {
+            "id": "ea311b11-4bf7-488c-a11e-726b937c1143",
+            "job_id": "711c4a87-c917-4625-9982-7c7532818f67",
+            "attempt_index": 1,
+            "stage": "EXECUTING_RAW",
+            "passed": false,
+            "exit_code": 40,
+            "score": 0.0,
+            "stdout": "",
+            "stderr": "Static analysis blocked execution due to forbidden patterns.",
+            "shim_used": false,
+            "shim_source": null,
+            "artifacts_json": {
+              "executor": "static_analysis_gate",
+              "error_code": "static_analysis_blocked",
+              "comparison_mode": "strict",
+              "blocked": true,
+              "language": "python",
+              "violations": [
+                {
+                  "file": "solution.py",
+                  "line": 2,
+                  "rule": "python_forbidden_call",
+                  "message": "Forbidden call 'os.system'"
+                }
+              ]
+            },
+            "started_at": "2026-04-13T20:23:29.799380Z",
+            "finished_at": "2026-04-13T20:23:29.801316Z",
+            "created_at": "2026-04-13T20:23:29.803296Z"
+          }
+        ]
+      }
+    },
+    {
+      "case": "eval_exec",
+      "result": {
+        "id": "0a8a0572-44c0-48aa-8ebc-069655e7774c",
+        "assignment_id": "537d9ca6-64c8-437f-a6e6-a3c370348aa9",
+        "submission_id": "52208238-2fdf-4077-af7a-eaeba9a18ea6",
+        "environment_version_id": "cf748404-7afc-4061-9c21-98a1840cc0eb",
+        "status": "FAILED",
+        "language": "python",
+        "entrypoint": "solution.py",
+        "regrade_policy": "new_only_unless_explicit",
+        "explicit_regrade": false,
+        "attempt_count": 1,
+        "final_result_json": {
+          "job_id": "0a8a0572-44c0-48aa-8ebc-069655e7774c",
+          "submission_id": "52208238-2fdf-4077-af7a-eaeba9a18ea6",
+          "status": "FAILED",
+          "error_code": "static_analysis_blocked",
+          "attempts": [
+            {
+              "stage": "EXECUTING_RAW",
+              "passed": false,
+              "exit_code": 40,
+              "stdout": "",
+              "stderr": "Static analysis blocked execution due to forbidden patterns.",
+              "score": 0.0,
+              "shim_used": false,
+              "shim_source": null
+            }
+          ],
+          "attempt_artifacts": [
+            {
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "shim_used": false,
+              "executor": "static_analysis_gate",
+              "error_code": "static_analysis_blocked",
+              "comparison_mode": "strict"
+            }
+          ],
+          "static_analysis": {
+            "blocked": true,
+            "language": "python",
+            "violations": [
+              {
+                "file": "solution.py",
+                "line": 1,
+                "rule": "python_forbidden_call",
+                "message": "Forbidden call '__import__'"
+              }
+            ]
+          }
+        },
+        "error_message": "[static_analysis_blocked] Static analysis blocked execution due to forbidden patterns.",
+        "queued_at": "2026-04-13T20:23:31.247009Z",
+        "started_at": "2026-04-13T20:23:31.259385Z",
+        "finished_at": "2026-04-13T20:23:31.272166Z",
+        "created_at": "2026-04-13T20:23:31.247013Z",
+        "updated_at": "2026-04-13T20:23:31.272552Z",
+        "attempts": [
+          {
+            "id": "0e1f7b7a-35eb-402b-8ff1-264d41d36fca",
+            "job_id": "0a8a0572-44c0-48aa-8ebc-069655e7774c",
+            "attempt_index": 1,
+            "stage": "EXECUTING_RAW",
+            "passed": false,
+            "exit_code": 40,
+            "score": 0.0,
+            "stdout": "",
+            "stderr": "Static analysis blocked execution due to forbidden patterns.",
+            "shim_used": false,
+            "shim_source": null,
+            "artifacts_json": {
+              "executor": "static_analysis_gate",
+              "error_code": "static_analysis_blocked",
+              "comparison_mode": "strict",
+              "blocked": true,
+              "language": "python",
+              "violations": [
+                {
+                  "file": "solution.py",
+                  "line": 1,
+                  "rule": "python_forbidden_call",
+                  "message": "Forbidden call '__import__'"
+                }
+              ]
+            },
+            "started_at": "2026-04-13T20:23:31.262580Z",
+            "finished_at": "2026-04-13T20:23:31.264322Z",
+            "created_at": "2026-04-13T20:23:31.265631Z"
+          }
+        ]
+      }
+    }
+  ]
+}

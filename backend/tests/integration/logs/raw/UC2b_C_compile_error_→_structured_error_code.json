@@ -1,0 +1,317 @@
+{
+  "test": "UC2b: C compile error \u2192 structured error_code",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "raw_result": {
+        "id": "798dfbfd-5b3b-43f7-8af3-b929e94601d9",
+        "assignment_id": "965c6a22-7856-4cc8-a3e1-ede6ca11eef7",
+        "submission_id": "db536bb4-fc2e-4e38-a4d4-05a3cf53a341",
+        "environment_version_id": "92cb3261-2b7d-4b7f-8e77-e0cec67bb755",
+        "status": "FAILED",
+        "language": "c",
+        "entrypoint": "solution.c",
+        "regrade_policy": "new_only_unless_explicit",
+        "explicit_regrade": false,
+        "attempt_count": 1,
+        "final_result_json": {
+          "job_id": "798dfbfd-5b3b-43f7-8af3-b929e94601d9",
+          "submission_id": "db536bb4-fc2e-4e38-a4d4-05a3cf53a341",
+          "status": "FAILED",
+          "error_code": "Some testcases failed. First failing testcase=tc1 reason=compile_error",
+          "attempts": [
+            {
+              "stage": "EXECUTING_RAW",
+              "passed": false,
+              "exit_code": 1,
+              "stdout": "Passed 0/1 testcases.",
+              "stderr": "Some testcases failed. First failing testcase=tc1 reason=compile_error",
+              "score": 0.0,
+              "shim_used": false,
+              "shim_source": null
+            }
+          ],
+          "attempt_artifacts": [
+            {
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "shim_used": false,
+              "executor": "local_subprocess",
+              "error_code": null,
+              "comparison_mode": "strict"
+            }
+          ],
+          "shim_decision": {
+            "eligible": false,
+            "reason": "deterministic_whitespace_shim_not_applicable_for_compiled_language|ai_shim_model_error",
+            "comparison_mode": null,
+            "shim_source": null,
+            "analyzed_at": "2026-04-13T20:23:22.683021+00:00",
+            "failed_testcases": [
+              {
+                "testcase_id": "tc1",
+                "failure_tokens": [
+                  "compile_error"
+                ],
+                "eligible": false,
+                "decision_reason": "initial_execution_failure",
+                "stdout": "",
+                "stderr": "/tmp/code_eval_local_a2fhl2hz/solution.c: In function \u2018main\u2019:\n/tmp/code_eval_local_a2fhl2hz/solution.c:2:12: error: \u2018SYNTAX_WHOOPS\u2019 undeclared (first use in this function)\n    2 | int main(){SYNTAX_WHOOPS;;;\n      |            ^~~~~~~~~~~~~\n/tmp/code_eval_local_a2fhl2hz/solution.c:2:12: note: each undeclared identifier is reported only once for each function it appears in\n"
+              }
+            ],
+            "ai_decision": {
+              "eligible": false,
+              "reason": "ai_shim_model_error",
+              "comparison_mode": null,
+              "shim_source": null,
+              "analyzed_at": "2026-04-13T20:23:22.683006+00:00",
+              "failed_testcases": [
+                {
+                  "testcase_id": "tc1",
+                  "failure_tokens": [
+                    "compile_error"
+                  ],
+                  "eligible": false,
+                  "decision_reason": "initial_execution_failure",
+                  "stdout": "",
+                  "stderr": "/tmp/code_eval_local_a2fhl2hz/solution.c: In function \u2018main\u2019:\n/tmp/code_eval_local_a2fhl2hz/solution.c:2:12: error: \u2018SYNTAX_WHOOPS\u2019 undeclared (first use in this function)\n    2 | int main(){SYNTAX_WHOOPS;;;\n      |            ^~~~~~~~~~~~~\n/tmp/code_eval_local_a2fhl2hz/solution.c:2:12: note: each undeclared identifier is reported only once for each function it appears in\n"
+                }
+              ],
+              "ai_error": "Code-eval AI shim analysis (c) failed: Model response did not include structured JSON output.",
+              "model": "gemini-3.1-flash-lite-preview",
+              "prompt_hash": "6cb133a99c92ae548eecd68e36a2d3716f8e23a7e84a262681fbfea2d8a99923",
+              "shim_warning": {
+                "attempted": true,
+                "reason": "model_unavailable",
+                "error": "Code-eval AI shim analysis (c) failed: Model response did not include structured JSON output.",
+                "language": "c"
+              }
+            },
+            "shim_warning": {
+              "attempted": true,
+              "reason": "model_unavailable",
+              "error": "Code-eval AI shim analysis (c) failed: Model response did not include structured JSON output.",
+              "language": "c"
+            }
+          },
+          "quality_evaluation": {
+            "enabled": false,
+            "applied": false,
+            "reason": "correctness_not_passed",
+            "weight_percent": 0.0,
+            "mode": "disabled",
+            "correctness_score": 0.0,
+            "max_score": 1.0
+          },
+          "score_breakdown": {
+            "correctness_score": 0.0,
+            "max_score": 1.0,
+            "correctness_percent": 0.0,
+            "quality_applied": false,
+            "quality_mode": "disabled",
+            "quality_weight_percent": 0.0,
+            "quality_score": null,
+            "total_score": 0.0,
+            "total_percent": 0.0
+          },
+          "shim_warning": {
+            "attempted": true,
+            "reason": "model_unavailable",
+            "error": "Code-eval AI shim analysis (c) failed: Model response did not include structured JSON output.",
+            "language": "c"
+          }
+        },
+        "error_message": "[Some testcases failed. First failing testcase=tc1 reason=compile_error] Some testcases failed. First failing testcase=tc1 reason=compile_error",
+        "queued_at": "2026-04-13T20:23:10.974931Z",
+        "started_at": "2026-04-13T20:23:10.988117Z",
+        "finished_at": "2026-04-13T20:23:22.684898Z",
+        "created_at": "2026-04-13T20:23:10.974947Z",
+        "updated_at": "2026-04-13T20:23:22.685181Z",
+        "attempts": [
+          {
+            "id": "f3e9587a-fe41-4673-b727-fa8470c3e552",
+            "job_id": "798dfbfd-5b3b-43f7-8af3-b929e94601d9",
+            "attempt_index": 1,
+            "stage": "EXECUTING_RAW",
+            "passed": false,
+            "exit_code": 1,
+            "score": 0.0,
+            "stdout": "Passed 0/1 testcases.",
+            "stderr": "Some testcases failed. First failing testcase=tc1 reason=compile_error",
+            "shim_used": false,
+            "shim_source": null,
+            "artifacts_json": {
+              "executor": "local_subprocess",
+              "enabled": true,
+              "language": "c",
+              "comparison_mode": "strict",
+              "shim_used": false,
+              "shim_source": null,
+              "compile_flags": [
+                "-Wall",
+                "-Wextra",
+                "-O2",
+                "-std=c17"
+              ],
+              "link_flags": [
+                "-lm"
+              ],
+              "run_flags": [],
+              "network_enforced": false,
+              "max_score": 1.0,
+              "earned_score": 0.0,
+              "testcases": [
+                {
+                  "testcase_id": "tc1",
+                  "passed": false,
+                  "weight": 1.0,
+                  "awarded_score": 0.0,
+                  "exit_code": 1,
+                  "stdout": "",
+                  "stderr": "/tmp/code_eval_local_a2fhl2hz/solution.c: In function \u2018main\u2019:\n/tmp/code_eval_local_a2fhl2hz/solution.c:2:12: error: \u2018SYNTAX_WHOOPS\u2019 undeclared (first use in this function)\n    2 | int main(){SYNTAX_WHOOPS;;;\n      |            ^~~~~~~~~~~~~\n/tmp/code_eval_local_a2fhl2hz/solution.c:2:12: note: each undeclared identifier is reported only once for each function it appears in\n",
+                  "failure_reason": "compile_error",
+                  "output_truncated": false
+                }
+              ],
+              "compile_artifacts": {
+                "error_code": "compile_error",
+                "compiler": "gcc",
+                "language": "c",
+                "exit_code": 1,
+                "stdout": "",
+                "stderr": "/tmp/code_eval_local_a2fhl2hz/solution.c: In function \u2018main\u2019:\n/tmp/code_eval_local_a2fhl2hz/solution.c:2:12: error: \u2018SYNTAX_WHOOPS\u2019 undeclared (first use in this function)\n    2 | int main(){SYNTAX_WHOOPS;;;\n      |            ^~~~~~~~~~~~~\n/tmp/code_eval_local_a2fhl2hz/solution.c:2:12: note: each undeclared identifier is reported only once for each function it appears in\n",
+                "command": [
+                  "gcc",
+                  "/tmp/code_eval_local_a2fhl2hz/solution.c",
+                  "-Wall",
+                  "-Wextra",
+                  "-O2",
+                  "-std=c17",
+                  "-o",
+                  "/tmp/code_eval_local_a2fhl2hz/.codeeval_exec",
+                  "-lm"
+                ]
+              },
+              "warnings": [
+                "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+              ]
+            },
+            "started_at": "2026-04-13T20:23:10.991720Z",
+            "finished_at": "2026-04-13T20:23:11.012049Z",
+            "created_at": "2026-04-13T20:23:11.013455Z"
+          }
+        ]
+      }
+    },
+    {
+      "failure_reasons": [],
+      "final": {
+        "job_id": "798dfbfd-5b3b-43f7-8af3-b929e94601d9",
+        "submission_id": "db536bb4-fc2e-4e38-a4d4-05a3cf53a341",
+        "status": "FAILED",
+        "error_code": "Some testcases failed. First failing testcase=tc1 reason=compile_error",
+        "attempts": [
+          {
+            "stage": "EXECUTING_RAW",
+            "passed": false,
+            "exit_code": 1,
+            "stdout": "Passed 0/1 testcases.",
+            "stderr": "Some testcases failed. First failing testcase=tc1 reason=compile_error",
+            "score": 0.0,
+            "shim_used": false,
+            "shim_source": null
+          }
+        ],
+        "attempt_artifacts": [
+          {
+            "attempt_index": 1,
+            "stage": "EXECUTING_RAW",
+            "shim_used": false,
+            "executor": "local_subprocess",
+            "error_code": null,
+            "comparison_mode": "strict"
+          }
+        ],
+        "shim_decision": {
+          "eligible": false,
+          "reason": "deterministic_whitespace_shim_not_applicable_for_compiled_language|ai_shim_model_error",
+          "comparison_mode": null,
+          "shim_source": null,
+          "analyzed_at": "2026-04-13T20:23:22.683021+00:00",
+          "failed_testcases": [
+            {
+              "testcase_id": "tc1",
+              "failure_tokens": [
+                "compile_error"
+              ],
+              "eligible": false,
+              "decision_reason": "initial_execution_failure",
+              "stdout": "",
+              "stderr": "/tmp/code_eval_local_a2fhl2hz/solution.c: In function \u2018main\u2019:\n/tmp/code_eval_local_a2fhl2hz/solution.c:2:12: error: \u2018SYNTAX_WHOOPS\u2019 undeclared (first use in this function)\n    2 | int main(){SYNTAX_WHOOPS;;;\n      |            ^~~~~~~~~~~~~\n/tmp/code_eval_local_a2fhl2hz/solution.c:2:12: note: each undeclared identifier is reported only once for each function it appears in\n"
+            }
+          ],
+          "ai_decision": {
+            "eligible": false,
+            "reason": "ai_shim_model_error",
+            "comparison_mode": null,
+            "shim_source": null,
+            "analyzed_at": "2026-04-13T20:23:22.683006+00:00",
+            "failed_testcases": [
+              {
+                "testcase_id": "tc1",
+                "failure_tokens": [
+                  "compile_error"
+                ],
+                "eligible": false,
+                "decision_reason": "initial_execution_failure",
+                "stdout": "",
+                "stderr": "/tmp/code_eval_local_a2fhl2hz/solution.c: In function \u2018main\u2019:\n/tmp/code_eval_local_a2fhl2hz/solution.c:2:12: error: \u2018SYNTAX_WHOOPS\u2019 undeclared (first use in this function)\n    2 | int main(){SYNTAX_WHOOPS;;;\n      |            ^~~~~~~~~~~~~\n/tmp/code_eval_local_a2fhl2hz/solution.c:2:12: note: each undeclared identifier is reported only once for each function it appears in\n"
+              }
+            ],
+            "ai_error": "Code-eval AI shim analysis (c) failed: Model response did not include structured JSON output.",
+            "model": "gemini-3.1-flash-lite-preview",
+            "prompt_hash": "6cb133a99c92ae548eecd68e36a2d3716f8e23a7e84a262681fbfea2d8a99923",
+            "shim_warning": {
+              "attempted": true,
+              "reason": "model_unavailable",
+              "error": "Code-eval AI shim analysis (c) failed: Model response did not include structured JSON output.",
+              "language": "c"
+            }
+          },
+          "shim_warning": {
+            "attempted": true,
+            "reason": "model_unavailable",
+            "error": "Code-eval AI shim analysis (c) failed: Model response did not include structured JSON output.",
+            "language": "c"
+          }
+        },
+        "quality_evaluation": {
+          "enabled": false,
+          "applied": false,
+          "reason": "correctness_not_passed",
+          "weight_percent": 0.0,
+          "mode": "disabled",
+          "correctness_score": 0.0,
+          "max_score": 1.0
+        },
+        "score_breakdown": {
+          "correctness_score": 0.0,
+          "max_score": 1.0,
+          "correctness_percent": 0.0,
+          "quality_applied": false,
+          "quality_mode": "disabled",
+          "quality_weight_percent": 0.0,
+          "quality_score": null,
+          "total_score": 0.0,
+          "total_percent": 0.0
+        },
+        "shim_warning": {
+          "attempted": true,
+          "reason": "model_unavailable",
+          "error": "Code-eval AI shim analysis (c) failed: Model response did not include structured JSON output.",
+          "language": "c"
+        }
+      }
+    }
+  ]
+}

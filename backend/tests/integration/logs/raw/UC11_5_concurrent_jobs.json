@@ -1,0 +1,589 @@
+{
+  "test": "UC11: 5 concurrent jobs",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "elapsed_s": 1.78,
+      "completed": 5,
+      "failed": 0,
+      "errors": [],
+      "results": [
+        {
+          "id": "3a626df8-52bf-443f-aa02-89c7f1f8b369",
+          "assignment_id": "abf864fd-b19e-48a1-b507-8af5f43245d2",
+          "submission_id": "c3c40653-c5cc-4eed-87ea-582cfe3ea414",
+          "environment_version_id": "c04078f9-0bff-47bc-be47-525501a5f6ce",
+          "status": "COMPLETED",
+          "language": "python",
+          "entrypoint": "solution.py",
+          "regrade_policy": "new_only_unless_explicit",
+          "explicit_regrade": false,
+          "attempt_count": 1,
+          "final_result_json": {
+            "job_id": "3a626df8-52bf-443f-aa02-89c7f1f8b369",
+            "submission_id": "c3c40653-c5cc-4eed-87ea-582cfe3ea414",
+            "total_score": 1.0,
+            "max_score": 1.0,
+            "status": "COMPLETED",
+            "attempts": [
+              {
+                "stage": "EXECUTING_RAW",
+                "passed": true,
+                "exit_code": 0,
+                "stdout": "Passed 1/1 testcases.",
+                "stderr": "",
+                "score": 1.0,
+                "shim_used": false,
+                "shim_source": null
+              }
+            ],
+            "attempt_artifacts": [
+              {
+                "attempt_index": 1,
+                "stage": "EXECUTING_RAW",
+                "shim_used": false,
+                "executor": "local_subprocess",
+                "error_code": null,
+                "comparison_mode": "strict"
+              }
+            ],
+            "quality_evaluation": {
+              "enabled": false,
+              "applied": false,
+              "reason": "quality_mode_disabled_or_weight_zero",
+              "weight_percent": 0.0,
+              "mode": "disabled",
+              "correctness_score": 1.0,
+              "max_score": 1.0
+            },
+            "score_breakdown": {
+              "correctness_score": 1.0,
+              "max_score": 1.0,
+              "correctness_percent": 100.0,
+              "quality_applied": false,
+              "quality_mode": "disabled",
+              "quality_weight_percent": 0.0,
+              "quality_score": null,
+              "total_score": 1.0,
+              "total_percent": 100.0
+            }
+          },
+          "error_message": null,
+          "queued_at": "2026-04-13T20:23:56.958311Z",
+          "started_at": "2026-04-13T20:23:56.983487Z",
+          "finished_at": "2026-04-13T20:23:57.024394Z",
+          "created_at": "2026-04-13T20:23:56.958318Z",
+          "updated_at": "2026-04-13T20:23:57.025382Z",
+          "attempts": [
+            {
+              "id": "89758480-c4ba-414a-80a7-ac097e19075e",
+              "job_id": "3a626df8-52bf-443f-aa02-89c7f1f8b369",
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "passed": true,
+              "exit_code": 0,
+              "score": 1.0,
+              "stdout": "Passed 1/1 testcases.",
+              "stderr": "",
+              "shim_used": false,
+              "shim_source": null,
+              "artifacts_json": {
+                "executor": "local_subprocess",
+                "enabled": true,
+                "language": "python",
+                "comparison_mode": "strict",
+                "shim_used": false,
+                "shim_source": null,
+                "compile_flags": [],
+                "link_flags": [],
+                "run_flags": [],
+                "network_enforced": false,
+                "max_score": 1.0,
+                "earned_score": 1.0,
+                "testcases": [
+                  {
+                    "testcase_id": "tc1",
+                    "passed": true,
+                    "weight": 1.0,
+                    "awarded_score": 1.0,
+                    "exit_code": 0,
+                    "stdout": "20\n",
+                    "stderr": "",
+                    "failure_reason": null,
+                    "output_truncated": false
+                  }
+                ],
+                "warnings": [
+                  "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+                ]
+              },
+              "started_at": "2026-04-13T20:23:56.987352Z",
+              "finished_at": "2026-04-13T20:23:57.012833Z",
+              "created_at": "2026-04-13T20:23:57.014858Z"
+            }
+          ]
+        },
+        {
+          "id": "c9609755-d2fa-4723-bf24-ff8c1bf07134",
+          "assignment_id": "b73cd3ba-995a-4b8d-9a93-33f5e3a66588",
+          "submission_id": "57ef7b4e-15ee-4e19-8602-09fed22e4e1b",
+          "environment_version_id": "c04078f9-0bff-47bc-be47-525501a5f6ce",
+          "status": "COMPLETED",
+          "language": "python",
+          "entrypoint": "solution.py",
+          "regrade_policy": "new_only_unless_explicit",
+          "explicit_regrade": false,
+          "attempt_count": 1,
+          "final_result_json": {
+            "job_id": "c9609755-d2fa-4723-bf24-ff8c1bf07134",
+            "submission_id": "57ef7b4e-15ee-4e19-8602-09fed22e4e1b",
+            "total_score": 1.0,
+            "max_score": 1.0,
+            "status": "COMPLETED",
+            "attempts": [
+              {
+                "stage": "EXECUTING_RAW",
+                "passed": true,
+                "exit_code": 0,
+                "stdout": "Passed 1/1 testcases.",
+                "stderr": "",
+                "score": 1.0,
+                "shim_used": false,
+                "shim_source": null
+              }
+            ],
+            "attempt_artifacts": [
+              {
+                "attempt_index": 1,
+                "stage": "EXECUTING_RAW",
+                "shim_used": false,
+                "executor": "local_subprocess",
+                "error_code": null,
+                "comparison_mode": "strict"
+              }
+            ],
+            "quality_evaluation": {
+              "enabled": false,
+              "applied": false,
+              "reason": "quality_mode_disabled_or_weight_zero",
+              "weight_percent": 0.0,
+              "mode": "disabled",
+              "correctness_score": 1.0,
+              "max_score": 1.0
+            },
+            "score_breakdown": {
+              "correctness_score": 1.0,
+              "max_score": 1.0,
+              "correctness_percent": 100.0,
+              "quality_applied": false,
+              "quality_mode": "disabled",
+              "quality_weight_percent": 0.0,
+              "quality_score": null,
+              "total_score": 1.0,
+              "total_percent": 100.0
+            }
+          },
+          "error_message": null,
+          "queued_at": "2026-04-13T20:23:56.977182Z",
+          "started_at": "2026-04-13T20:23:57.103129Z",
+          "finished_at": "2026-04-13T20:23:57.137110Z",
+          "created_at": "2026-04-13T20:23:56.977188Z",
+          "updated_at": "2026-04-13T20:23:57.137873Z",
+          "attempts": [
+            {
+              "id": "00059e7f-a4bd-4c4c-bf76-4ae02006f5a8",
+              "job_id": "c9609755-d2fa-4723-bf24-ff8c1bf07134",
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "passed": true,
+              "exit_code": 0,
+              "score": 1.0,
+              "stdout": "Passed 1/1 testcases.",
+              "stderr": "",
+              "shim_used": false,
+              "shim_source": null,
+              "artifacts_json": {
+                "executor": "local_subprocess",
+                "enabled": true,
+                "language": "python",
+                "comparison_mode": "strict",
+                "shim_used": false,
+                "shim_source": null,
+                "compile_flags": [],
+                "link_flags": [],
+                "run_flags": [],
+                "network_enforced": false,
+                "max_score": 1.0,
+                "earned_score": 1.0,
+                "testcases": [
+                  {
+                    "testcase_id": "tc1",
+                    "passed": true,
+                    "weight": 1.0,
+                    "awarded_score": 1.0,
+                    "exit_code": 0,
+                    "stdout": "2\n",
+                    "stderr": "",
+                    "failure_reason": null,
+                    "output_truncated": false
+                  }
+                ],
+                "warnings": [
+                  "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+                ]
+              },
+              "started_at": "2026-04-13T20:23:57.106014Z",
+              "finished_at": "2026-04-13T20:23:57.125823Z",
+              "created_at": "2026-04-13T20:23:57.128080Z"
+            }
+          ]
+        },
+        {
+          "id": "74667748-7329-4480-9f9f-82785b61c44d",
+          "assignment_id": "48876160-e602-48a7-8040-06c773e383ce",
+          "submission_id": "959fd890-886e-4ca4-9835-e87a4374377e",
+          "environment_version_id": "c04078f9-0bff-47bc-be47-525501a5f6ce",
+          "status": "COMPLETED",
+          "language": "python",
+          "entrypoint": "solution.py",
+          "regrade_policy": "new_only_unless_explicit",
+          "explicit_regrade": false,
+          "attempt_count": 1,
+          "final_result_json": {
+            "job_id": "74667748-7329-4480-9f9f-82785b61c44d",
+            "submission_id": "959fd890-886e-4ca4-9835-e87a4374377e",
+            "total_score": 1.0,
+            "max_score": 1.0,
+            "status": "COMPLETED",
+            "attempts": [
+              {
+                "stage": "EXECUTING_RAW",
+                "passed": true,
+                "exit_code": 0,
+                "stdout": "Passed 1/1 testcases.",
+                "stderr": "",
+                "score": 1.0,
+                "shim_used": false,
+                "shim_source": null
+              }
+            ],
+            "attempt_artifacts": [
+              {
+                "attempt_index": 1,
+                "stage": "EXECUTING_RAW",
+                "shim_used": false,
+                "executor": "local_subprocess",
+                "error_code": null,
+                "comparison_mode": "strict"
+              }
+            ],
+            "quality_evaluation": {
+              "enabled": false,
+              "applied": false,
+              "reason": "quality_mode_disabled_or_weight_zero",
+              "weight_percent": 0.0,
+              "mode": "disabled",
+              "correctness_score": 1.0,
+              "max_score": 1.0
+            },
+            "score_breakdown": {
+              "correctness_score": 1.0,
+              "max_score": 1.0,
+              "correctness_percent": 100.0,
+              "quality_applied": false,
+              "quality_mode": "disabled",
+              "quality_weight_percent": 0.0,
+              "quality_score": null,
+              "total_score": 1.0,
+              "total_percent": 100.0
+            }
+          },
+          "error_message": null,
+          "queued_at": "2026-04-13T20:23:56.971424Z",
+          "started_at": "2026-04-13T20:23:57.037925Z",
+          "finished_at": "2026-04-13T20:23:57.088747Z",
+          "created_at": "2026-04-13T20:23:56.971429Z",
+          "updated_at": "2026-04-13T20:23:57.089139Z",
+          "attempts": [
+            {
+              "id": "a29238aa-d002-4a29-931c-d3c7b47fe2ad",
+              "job_id": "74667748-7329-4480-9f9f-82785b61c44d",
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "passed": true,
+              "exit_code": 0,
+              "score": 1.0,
+              "stdout": "Passed 1/1 testcases.",
+              "stderr": "",
+              "shim_used": false,
+              "shim_source": null,
+              "artifacts_json": {
+                "executor": "local_subprocess",
+                "enabled": true,
+                "language": "python",
+                "comparison_mode": "strict",
+                "shim_used": false,
+                "shim_source": null,
+                "compile_flags": [],
+                "link_flags": [],
+                "run_flags": [],
+                "network_enforced": false,
+                "max_score": 1.0,
+                "earned_score": 1.0,
+                "testcases": [
+                  {
+                    "testcase_id": "tc1",
+                    "passed": true,
+                    "weight": 1.0,
+                    "awarded_score": 1.0,
+                    "exit_code": 0,
+                    "stdout": "6\n",
+                    "stderr": "",
+                    "failure_reason": null,
+                    "output_truncated": false
+                  }
+                ],
+                "warnings": [
+                  "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+                ]
+              },
+              "started_at": "2026-04-13T20:23:57.044427Z",
+              "finished_at": "2026-04-13T20:23:57.074907Z",
+              "created_at": "2026-04-13T20:23:57.076866Z"
+            }
+          ]
+        },
+        {
+          "id": "5e4bd8e5-1cc3-4513-8b4d-76de474ae96f",
+          "assignment_id": "022685d7-95e6-4580-8569-b4f2786f5bae",
+          "submission_id": "c7a606aa-7f56-4841-99de-2853b9f29cff",
+          "environment_version_id": "c04078f9-0bff-47bc-be47-525501a5f6ce",
+          "status": "COMPLETED",
+          "language": "python",
+          "entrypoint": "solution.py",
+          "regrade_policy": "new_only_unless_explicit",
+          "explicit_regrade": false,
+          "attempt_count": 1,
+          "final_result_json": {
+            "job_id": "5e4bd8e5-1cc3-4513-8b4d-76de474ae96f",
+            "submission_id": "c7a606aa-7f56-4841-99de-2853b9f29cff",
+            "total_score": 1.0,
+            "max_score": 1.0,
+            "status": "COMPLETED",
+            "attempts": [
+              {
+                "stage": "EXECUTING_RAW",
+                "passed": true,
+                "exit_code": 0,
+                "stdout": "Passed 1/1 testcases.",
+                "stderr": "",
+                "score": 1.0,
+                "shim_used": false,
+                "shim_source": null
+              }
+            ],
+            "attempt_artifacts": [
+              {
+                "attempt_index": 1,
+                "stage": "EXECUTING_RAW",
+                "shim_used": false,
+                "executor": "local_subprocess",
+                "error_code": null,
+                "comparison_mode": "strict"
+              }
+            ],
+            "quality_evaluation": {
+              "enabled": false,
+              "applied": false,
+              "reason": "quality_mode_disabled_or_weight_zero",
+              "weight_percent": 0.0,
+              "mode": "disabled",
+              "correctness_score": 1.0,
+              "max_score": 1.0
+            },
+            "score_breakdown": {
+              "correctness_score": 1.0,
+              "max_score": 1.0,
+              "correctness_percent": 100.0,
+              "quality_applied": false,
+              "quality_mode": "disabled",
+              "quality_weight_percent": 0.0,
+              "quality_score": null,
+              "total_score": 1.0,
+              "total_percent": 100.0
+            }
+          },
+          "error_message": null,
+          "queued_at": "2026-04-13T20:23:56.976772Z",
+          "started_at": "2026-04-13T20:23:57.046017Z",
+          "finished_at": "2026-04-13T20:23:57.088835Z",
+          "created_at": "2026-04-13T20:23:56.976780Z",
+          "updated_at": "2026-04-13T20:23:57.089204Z",
+          "attempts": [
+            {
+              "id": "f7562c4d-7b6f-4d68-8e48-3c53fcf93cb1",
+              "job_id": "5e4bd8e5-1cc3-4513-8b4d-76de474ae96f",
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "passed": true,
+              "exit_code": 0,
+              "score": 1.0,
+              "stdout": "Passed 1/1 testcases.",
+              "stderr": "",
+              "shim_used": false,
+              "shim_source": null,
+              "artifacts_json": {
+                "executor": "local_subprocess",
+                "enabled": true,
+                "language": "python",
+                "comparison_mode": "strict",
+                "shim_used": false,
+                "shim_source": null,
+                "compile_flags": [],
+                "link_flags": [],
+                "run_flags": [],
+                "network_enforced": false,
+                "max_score": 1.0,
+                "earned_score": 1.0,
+                "testcases": [
+                  {
+                    "testcase_id": "tc1",
+                    "passed": true,
+                    "weight": 1.0,
+                    "awarded_score": 1.0,
+                    "exit_code": 0,
+                    "stdout": "0\n",
+                    "stderr": "",
+                    "failure_reason": null,
+                    "output_truncated": false
+                  }
+                ],
+                "warnings": [
+                  "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+                ]
+              },
+              "started_at": "2026-04-13T20:23:57.050573Z",
+              "finished_at": "2026-04-13T20:23:57.078518Z",
+              "created_at": "2026-04-13T20:23:57.079862Z"
+            }
+          ]
+        },
+        {
+          "id": "37118d0c-e6b7-4ba1-a2e5-f7c8b1d26569",
+          "assignment_id": "af391322-e1f2-47f0-be99-1bbfb83ad774",
+          "submission_id": "27289f7a-0afd-4591-ab54-c193def9bc16",
+          "environment_version_id": "c04078f9-0bff-47bc-be47-525501a5f6ce",
+          "status": "COMPLETED",
+          "language": "python",
+          "entrypoint": "solution.py",
+          "regrade_policy": "new_only_unless_explicit",
+          "explicit_regrade": false,
+          "attempt_count": 1,
+          "final_result_json": {
+            "job_id": "37118d0c-e6b7-4ba1-a2e5-f7c8b1d26569",
+            "submission_id": "27289f7a-0afd-4591-ab54-c193def9bc16",
+            "total_score": 1.0,
+            "max_score": 1.0,
+            "status": "COMPLETED",
+            "attempts": [
+              {
+                "stage": "EXECUTING_RAW",
+                "passed": true,
+                "exit_code": 0,
+                "stdout": "Passed 1/1 testcases.",
+                "stderr": "",
+                "score": 1.0,
+                "shim_used": false,
+                "shim_source": null
+              }
+            ],
+            "attempt_artifacts": [
+              {
+                "attempt_index": 1,
+                "stage": "EXECUTING_RAW",
+                "shim_used": false,
+                "executor": "local_subprocess",
+                "error_code": null,
+                "comparison_mode": "strict"
+              }
+            ],
+            "quality_evaluation": {
+              "enabled": false,
+              "applied": false,
+              "reason": "quality_mode_disabled_or_weight_zero",
+              "weight_percent": 0.0,
+              "mode": "disabled",
+              "correctness_score": 1.0,
+              "max_score": 1.0
+            },
+            "score_breakdown": {
+              "correctness_score": 1.0,
+              "max_score": 1.0,
+              "correctness_percent": 100.0,
+              "quality_applied": false,
+              "quality_mode": "disabled",
+              "quality_weight_percent": 0.0,
+              "quality_score": null,
+              "total_score": 1.0,
+              "total_percent": 100.0
+            }
+          },
+          "error_message": null,
+          "queued_at": "2026-04-13T20:23:56.983625Z",
+          "started_at": "2026-04-13T20:23:57.105769Z",
+          "finished_at": "2026-04-13T20:23:57.141743Z",
+          "created_at": "2026-04-13T20:23:56.983629Z",
+          "updated_at": "2026-04-13T20:23:57.142164Z",
+          "attempts": [
+            {
+              "id": "1bf9cc15-54ab-4e52-b509-5e842acef46d",
+              "job_id": "37118d0c-e6b7-4ba1-a2e5-f7c8b1d26569",
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "passed": true,
+              "exit_code": 0,
+              "score": 1.0,
+              "stdout": "Passed 1/1 testcases.",
+              "stderr": "",
+              "shim_used": false,
+              "shim_source": null,
+              "artifacts_json": {
+                "executor": "local_subprocess",
+                "enabled": true,
+                "language": "python",
+                "comparison_mode": "strict",
+                "shim_used": false,
+                "shim_source": null,
+                "compile_flags": [],
+                "link_flags": [],
+                "run_flags": [],
+                "network_enforced": false,
+                "max_score": 1.0,
+                "earned_score": 1.0,
+                "testcases": [
+                  {
+                    "testcase_id": "tc1",
+                    "passed": true,
+                    "weight": 1.0,
+                    "awarded_score": 1.0,
+                    "exit_code": 0,
+                    "stdout": "12\n",
+                    "stderr": "",
+                    "failure_reason": null,
+                    "output_truncated": false
+                  }
+                ],
+                "warnings": [
+                  "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+                ]
+              },
+              "started_at": "2026-04-13T20:23:57.108830Z",
+              "finished_at": "2026-04-13T20:23:57.131442Z",
+              "created_at": "2026-04-13T20:23:57.132790Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -58,6 +58,15 @@ class AssignmentOut(BaseModel):
     published_by:      Optional[str]
     published_environment_version_id: Optional[str]
     created_at:        datetime
+    updated_at:        datetime
+
+
+class AssignmentSummaryOut(AssignmentOut):
+    """AssignmentOut enriched with computed submission/grade counts."""
+    submission_count: int = 0
+    graded_count:     int = 0
+    released_count:   int = 0
+    error_count:      int = 0
 
 
 class AssignmentPublishValidationRequest(BaseModel):
@@ -97,6 +106,11 @@ class SubmissionOut(BaseModel):
     error_message: Optional[str]
     created_at:    datetime
     updated_at:    datetime
+    # Enriched (computed from joined assignment)
+    assignment_title:             Optional[str] = None
+    assignment_max_marks:         Optional[float] = None
+    assignment_has_code_question: Optional[bool] = None
+    source_code:                  Optional[str] = None
 
 
 # ── Rubric ────────────────────────────────────────────────────────────────────
@@ -154,6 +168,18 @@ class OCRCorrectionRequest(BaseModel):
     new_content: str
     reason:      Optional[str] = None
     changed_by:  str = "ta"
+
+
+class RegradeRequest(BaseModel):
+    reason:     str = "Instructor requested regrade"
+    changed_by: str = "ta"
+
+
+class ManualGradeOverrideRequest(BaseModel):
+    total_score:    float
+    breakdown_json: dict
+    reason:         str
+    changed_by:     str = "ta"
 
 
 # ── Batch operations ──────────────────────────────────────────────────────────
@@ -224,6 +250,7 @@ class CodeEvalEnvironmentPublishValidationOut(BaseModel):
 class CodeEvalRuntimeStatusOut(BaseModel):
     execution_backend: str
     shim_retry_enabled: bool
+    ai_shim_generation_enabled: bool = False
     microvm: dict[str, Any]
 
 

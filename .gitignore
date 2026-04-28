@@ -7,8 +7,14 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+# Google OAuth credentials — never commit actual secrets
 backend/app/services/credentials.json
 backend/app/services/token.json
+backend/app/services/google_auth/credentials.json
+backend/app/services/google_auth/token.json
+# Catch any misdirected credential files anywhere in the tree
+**/google_auth/credentials.json
+**/google_auth/token.json
 
 # Python caches and virtual environments
 __pycache__/
@@ -60,3 +66,6 @@ logs/*
 !logs/*.ps1
 !logs/manual_artifacts/
 !logs/manual_artifacts/**
+
+# Local design/reference repositories (do not commit)
+references/

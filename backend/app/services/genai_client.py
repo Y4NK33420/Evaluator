@@ -63,6 +63,10 @@ def is_transient_model_exception(exc: Exception) -> bool:
         "UNAVAILABLE",
         "TIMEOUT",
         "CONNECTION RESET",
+        "DISCONNECT",
+        "SERVER DISCONNECTED",
+        "REMOTE PROTOCOL ERROR",
+        "EOF",
         "TRY AGAIN LATER",
     )
     return any(token in text for token in transient_tokens)

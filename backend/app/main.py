@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import Base, engine
-from app.api.v1 import assignments, submissions, rubrics, grades, images, code_eval
+from app.api.v1 import assignments, submissions, rubrics, grades, images, code_eval, classroom
 
 settings = get_settings()
 
@@ -43,6 +43,7 @@ app.include_router(rubrics.router,     prefix=prefix)
 app.include_router(grades.router,      prefix=prefix)
 app.include_router(images.router,      prefix=prefix)
 app.include_router(code_eval.router,   prefix=prefix)
+app.include_router(classroom.router,   prefix=prefix)
 
 
 @app.get("/health", tags=["ops"])

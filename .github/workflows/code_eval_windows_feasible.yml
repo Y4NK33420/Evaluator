@@ -1,0 +1,43 @@
+name: code-eval-windows-feasible
+
+on:
+  push:
+    paths:
+      - "backend/app/services/code_eval/**"
+      - "backend/app/api/v1/code_eval.py"
+      - "backend/app/workers/code_eval_tasks.py"
+      - "backend/tests/code_eval/**"
+      - ".github/workflows/code_eval_windows_feasible.yml"
+  pull_request:
+    paths:
+      - "backend/app/services/code_eval/**"
+      - "backend/app/api/v1/code_eval.py"
+      - "backend/app/workers/code_eval_tasks.py"
+      - "backend/tests/code_eval/**"
+      - ".github/workflows/code_eval_windows_feasible.yml"
+
+jobs:
+  code-eval-regression:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install backend dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r backend/requirements.txt
+
+      - name: Run code-eval regression tests
+        env:
+          DEFAULT_MODEL: gemini-2.5-flash
+          GOOGLE_CLOUD_API_KEY: ci-test-key
+        run: python -m pytest backend/tests/code_eval -q

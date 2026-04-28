@@ -1,0 +1,127 @@
+{
+  "test": "UC14: Bad language_config \u2192 configuration_error (NO XFAIL)",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "env": {
+        "id": "a2171ef2-0e89-4059-846e-f6050af3d823",
+        "course_id": "COURSE-3705d926",
+        "assignment_id": null,
+        "profile_key": "python-3.11",
+        "reuse_mode": "course_reuse_with_assignment_overrides",
+        "spec_json": {
+          "image_reference": "python:3.11-slim",
+          "language_config": {
+            "language": "python",
+            "junk_unsupported_key_that_must_fail": "boom"
+          }
+        },
+        "freeze_key": "fk-bad-879c40bb",
+        "status": "ready",
+        "version_number": 1,
+        "is_active": true,
+        "build_logs": null,
+        "created_by": null,
+        "created_at": "2026-04-13T20:24:05.745526Z",
+        "updated_at": "2026-04-13T20:24:05.745533Z"
+      }
+    },
+    {
+      "raw_result": {
+        "id": "fe03d6a1-44f4-4663-ab0f-afb6e3b25bdf",
+        "assignment_id": "899a3c3f-98b7-4fdd-9e71-4ce49a684e25",
+        "submission_id": "a7c98690-f032-44d6-b9eb-adc4346fa62f",
+        "environment_version_id": "a2171ef2-0e89-4059-846e-f6050af3d823",
+        "status": "FAILED",
+        "language": "python",
+        "entrypoint": "solution.py",
+        "regrade_policy": "new_only_unless_explicit",
+        "explicit_regrade": false,
+        "attempt_count": 1,
+        "final_result_json": {
+          "job_id": "fe03d6a1-44f4-4663-ab0f-afb6e3b25bdf",
+          "submission_id": "a7c98690-f032-44d6-b9eb-adc4346fa62f",
+          "status": "FAILED",
+          "error_code": "configuration_error",
+          "attempts": [
+            {
+              "stage": "EXECUTING_RAW",
+              "passed": false,
+              "exit_code": -1,
+              "stdout": "",
+              "stderr": "language_config validation failed: Unknown keys in language_config: ['junk_unsupported_key_that_must_fail']. Allowed keys: ['classpath_jars', 'compile_flags', 'entrypoint_style', 'language', 'link_flags', 'packages', 'run_flags']",
+              "score": 0.0,
+              "shim_used": false,
+              "shim_source": null
+            }
+          ],
+          "attempt_artifacts": [
+            {
+              "attempt_index": 1,
+              "stage": "EXECUTING_RAW",
+              "shim_used": false,
+              "executor": "config_validator",
+              "error_code": "configuration_error",
+              "comparison_mode": "strict",
+              "testcases": [
+                {
+                  "testcase_id": "tc1",
+                  "passed": false,
+                  "weight": 1.0,
+                  "awarded_score": 0.0,
+                  "exit_code": -1,
+                  "stdout": "",
+                  "stderr": "Unknown keys in language_config: ['junk_unsupported_key_that_must_fail']. Allowed keys: ['classpath_jars', 'compile_flags', 'entrypoint_style', 'language', 'link_flags', 'packages', 'run_flags']",
+                  "failure_reason": "configuration_error",
+                  "output_truncated": false
+                }
+              ]
+            }
+          ]
+        },
+        "error_message": "[configuration_error] language_config.python has invalid keys: Unknown keys in language_config: ['junk_unsupported_key_that_must_fail']. Allowed keys: ['classpath_jars', 'compile_flags', 'entrypoint_style', 'language', 'link_flags', 'packages', 'run_flags']",
+        "queued_at": "2026-04-13T20:24:05.828112Z",
+        "started_at": "2026-04-13T20:24:05.841407Z",
+        "finished_at": "2026-04-13T20:24:05.850309Z",
+        "created_at": "2026-04-13T20:24:05.828118Z",
+        "updated_at": "2026-04-13T20:24:05.850800Z",
+        "attempts": [
+          {
+            "id": "23c31cad-69ab-4526-8577-9267c5038a59",
+            "job_id": "fe03d6a1-44f4-4663-ab0f-afb6e3b25bdf",
+            "attempt_index": 1,
+            "stage": "EXECUTING_RAW",
+            "passed": false,
+            "exit_code": -1,
+            "score": 0.0,
+            "stdout": "",
+            "stderr": "language_config validation failed: Unknown keys in language_config: ['junk_unsupported_key_that_must_fail']. Allowed keys: ['classpath_jars', 'compile_flags', 'entrypoint_style', 'language', 'link_flags', 'packages', 'run_flags']",
+            "shim_used": false,
+            "shim_source": null,
+            "artifacts_json": {
+              "executor": "config_validator",
+              "error_code": "configuration_error",
+              "comparison_mode": "strict",
+              "testcases": [
+                {
+                  "testcase_id": "tc1",
+                  "passed": false,
+                  "weight": 1.0,
+                  "awarded_score": 0.0,
+                  "exit_code": -1,
+                  "stdout": "",
+                  "stderr": "Unknown keys in language_config: ['junk_unsupported_key_that_must_fail']. Allowed keys: ['classpath_jars', 'compile_flags', 'entrypoint_style', 'language', 'link_flags', 'packages', 'run_flags']",
+                  "failure_reason": "configuration_error",
+                  "output_truncated": false
+                }
+              ]
+            },
+            "started_at": "2026-04-13T20:24:05.841624Z",
+            "finished_at": "2026-04-13T20:24:05.841631Z",
+            "created_at": "2026-04-13T20:24:05.844177Z"
+          }
+        ]
+      }
+    }
+  ]
+}

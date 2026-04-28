@@ -1,0 +1,1470 @@
+{
+  "test": "UC16: 8-student classroom (4 COMPLETED, 4 FAILED)",
+  "run_id": "20260413T202301Z",
+  "steps": [
+    {
+      "elapsed_s": 9.42,
+      "outcomes": [
+        {
+          "student": "stu-A-45088a",
+          "status": "COMPLETED",
+          "score": 3.0,
+          "error_code": null,
+          "error_message": null,
+          "raw": {
+            "id": "ae14978c-2638-4384-9479-631a006cb8b1",
+            "assignment_id": "74cf834f-6201-4a1a-8ce4-6d1b6b2e9a55",
+            "submission_id": "98663020-c64d-406f-9964-6beb140368fe",
+            "environment_version_id": "2382fe1f-2153-46fe-a6dc-b723019b1948",
+            "status": "COMPLETED",
+            "language": "python",
+            "entrypoint": "solution.py",
+            "regrade_policy": "new_only_unless_explicit",
+            "explicit_regrade": false,
+            "attempt_count": 1,
+            "final_result_json": {
+              "job_id": "ae14978c-2638-4384-9479-631a006cb8b1",
+              "submission_id": "98663020-c64d-406f-9964-6beb140368fe",
+              "total_score": 3.0,
+              "max_score": 3.0,
+              "status": "COMPLETED",
+              "attempts": [
+                {
+                  "stage": "EXECUTING_RAW",
+                  "passed": true,
+                  "exit_code": 0,
+                  "stdout": "Passed 3/3 testcases.",
+                  "stderr": "",
+                  "score": 3.0,
+                  "shim_used": false,
+                  "shim_source": null
+                }
+              ],
+              "attempt_artifacts": [
+                {
+                  "attempt_index": 1,
+                  "stage": "EXECUTING_RAW",
+                  "shim_used": false,
+                  "executor": "local_subprocess",
+                  "error_code": null,
+                  "comparison_mode": "strict"
+                }
+              ],
+              "quality_evaluation": {
+                "enabled": false,
+                "applied": false,
+                "reason": "quality_mode_disabled_or_weight_zero",
+                "weight_percent": 0.0,
+                "mode": "disabled",
+                "correctness_score": 3.0,
+                "max_score": 3.0
+              },
+              "score_breakdown": {
+                "correctness_score": 3.0,
+                "max_score": 3.0,
+                "correctness_percent": 100.0,
+                "quality_applied": false,
+                "quality_mode": "disabled",
+                "quality_weight_percent": 0.0,
+                "quality_score": null,
+                "total_score": 3.0,
+                "total_percent": 100.0
+              }
+            },
+            "error_message": null,
+            "queued_at": "2026-04-13T20:24:10.390986Z",
+            "started_at": "2026-04-13T20:24:10.410824Z",
+            "finished_at": "2026-04-13T20:24:10.501010Z",
+            "created_at": "2026-04-13T20:24:10.391017Z",
+            "updated_at": "2026-04-13T20:24:10.501450Z",
+            "attempts": [
+              {
+                "id": "aabdcb01-0f97-4b0a-9f3b-a4b96394e3d0",
+                "job_id": "ae14978c-2638-4384-9479-631a006cb8b1",
+                "attempt_index": 1,
+                "stage": "EXECUTING_RAW",
+                "passed": true,
+                "exit_code": 0,
+                "score": 3.0,
+                "stdout": "Passed 3/3 testcases.",
+                "stderr": "",
+                "shim_used": false,
+                "shim_source": null,
+                "artifacts_json": {
+                  "executor": "local_subprocess",
+                  "enabled": true,
+                  "language": "python",
+                  "comparison_mode": "strict",
+                  "shim_used": false,
+                  "shim_source": null,
+                  "compile_flags": [],
+                  "link_flags": [],
+                  "run_flags": [],
+                  "network_enforced": false,
+                  "max_score": 3.0,
+                  "earned_score": 3.0,
+                  "testcases": [
+                    {
+                      "testcase_id": "tc1",
+                      "passed": true,
+                      "weight": 1.0,
+                      "awarded_score": 1.0,
+                      "exit_code": 0,
+                      "stdout": "25\n",
+                      "stderr": "",
+                      "failure_reason": null,
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc2",
+                      "passed": true,
+                      "weight": 1.0,
+                      "awarded_score": 1.0,
+                      "exit_code": 0,
+                      "stdout": "100\n",
+                      "stderr": "",
+                      "failure_reason": null,
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc3",
+                      "passed": true,
+                      "weight": 1.0,
+                      "awarded_score": 1.0,
+                      "exit_code": 0,
+                      "stdout": "0\n",
+                      "stderr": "",
+                      "failure_reason": null,
+                      "output_truncated": false
+                    }
+                  ],
+                  "warnings": [
+                    "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+                  ]
+                },
+                "started_at": "2026-04-13T20:24:10.416239Z",
+                "finished_at": "2026-04-13T20:24:10.490637Z",
+                "created_at": "2026-04-13T20:24:10.492316Z"
+              }
+            ]
+          }
+        },
+        {
+          "student": "stu-B-45088a",
+          "status": "COMPLETED",
+          "score": 3.0,
+          "error_code": null,
+          "error_message": null,
+          "raw": {
+            "id": "b90a8d6f-e94e-433e-9822-c6324bfed534",
+            "assignment_id": "74cf834f-6201-4a1a-8ce4-6d1b6b2e9a55",
+            "submission_id": "53803db1-5799-4390-a61c-7bb947673bb2",
+            "environment_version_id": "2382fe1f-2153-46fe-a6dc-b723019b1948",
+            "status": "COMPLETED",
+            "language": "python",
+            "entrypoint": "solution.py",
+            "regrade_policy": "new_only_unless_explicit",
+            "explicit_regrade": false,
+            "attempt_count": 1,
+            "final_result_json": {
+              "job_id": "b90a8d6f-e94e-433e-9822-c6324bfed534",
+              "submission_id": "53803db1-5799-4390-a61c-7bb947673bb2",
+              "total_score": 3.0,
+              "max_score": 3.0,
+              "status": "COMPLETED",
+              "attempts": [
+                {
+                  "stage": "EXECUTING_RAW",
+                  "passed": true,
+                  "exit_code": 0,
+                  "stdout": "Passed 3/3 testcases.",
+                  "stderr": "",
+                  "score": 3.0,
+                  "shim_used": false,
+                  "shim_source": null
+                }
+              ],
+              "attempt_artifacts": [
+                {
+                  "attempt_index": 1,
+                  "stage": "EXECUTING_RAW",
+                  "shim_used": false,
+                  "executor": "local_subprocess",
+                  "error_code": null,
+                  "comparison_mode": "strict"
+                }
+              ],
+              "quality_evaluation": {
+                "enabled": false,
+                "applied": false,
+                "reason": "quality_mode_disabled_or_weight_zero",
+                "weight_percent": 0.0,
+                "mode": "disabled",
+                "correctness_score": 3.0,
+                "max_score": 3.0
+              },
+              "score_breakdown": {
+                "correctness_score": 3.0,
+                "max_score": 3.0,
+                "correctness_percent": 100.0,
+                "quality_applied": false,
+                "quality_mode": "disabled",
+                "quality_weight_percent": 0.0,
+                "quality_score": null,
+                "total_score": 3.0,
+                "total_percent": 100.0
+              }
+            },
+            "error_message": null,
+            "queued_at": "2026-04-13T20:24:10.428086Z",
+            "started_at": "2026-04-13T20:24:10.515746Z",
+            "finished_at": "2026-04-13T20:24:10.582831Z",
+            "created_at": "2026-04-13T20:24:10.428093Z",
+            "updated_at": "2026-04-13T20:24:10.583109Z",
+            "attempts": [
+              {
+                "id": "fce4d251-f93e-48d4-a50a-82d6abbda815",
+                "job_id": "b90a8d6f-e94e-433e-9822-c6324bfed534",
+                "attempt_index": 1,
+                "stage": "EXECUTING_RAW",
+                "passed": true,
+                "exit_code": 0,
+                "score": 3.0,
+                "stdout": "Passed 3/3 testcases.",
+                "stderr": "",
+                "shim_used": false,
+                "shim_source": null,
+                "artifacts_json": {
+                  "executor": "local_subprocess",
+                  "enabled": true,
+                  "language": "python",
+                  "comparison_mode": "strict",
+                  "shim_used": false,
+                  "shim_source": null,
+                  "compile_flags": [],
+                  "link_flags": [],
+                  "run_flags": [],
+                  "network_enforced": false,
+                  "max_score": 3.0,
+                  "earned_score": 3.0,
+                  "testcases": [
+                    {
+                      "testcase_id": "tc1",
+                      "passed": true,
+                      "weight": 1.0,
+                      "awarded_score": 1.0,
+                      "exit_code": 0,
+                      "stdout": "25\n",
+                      "stderr": "",
+                      "failure_reason": null,
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc2",
+                      "passed": true,
+                      "weight": 1.0,
+                      "awarded_score": 1.0,
+                      "exit_code": 0,
+                      "stdout": "100\n",
+                      "stderr": "",
+                      "failure_reason": null,
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc3",
+                      "passed": true,
+                      "weight": 1.0,
+                      "awarded_score": 1.0,
+                      "exit_code": 0,
+                      "stdout": "0\n",
+                      "stderr": "",
+                      "failure_reason": null,
+                      "output_truncated": false
+                    }
+                  ],
+                  "warnings": [
+                    "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+                  ]
+                },
+                "started_at": "2026-04-13T20:24:10.518889Z",
+                "finished_at": "2026-04-13T20:24:10.573721Z",
+                "created_at": "2026-04-13T20:24:10.575057Z"
+              }
+            ]
+          }
+        },
+        {
+          "student": "stu-C-45088a",
+          "status": "FAILED",
+          "score": 0.0,
+          "error_code": "Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+          "error_message": "[Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch] Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+          "raw": {
+            "id": "74e4f7a4-e66e-4efb-83a2-151bace8a7fe",
+            "assignment_id": "74cf834f-6201-4a1a-8ce4-6d1b6b2e9a55",
+            "submission_id": "61ebe3d0-0204-4035-be6a-0cad47c67622",
+            "environment_version_id": "2382fe1f-2153-46fe-a6dc-b723019b1948",
+            "status": "FAILED",
+            "language": "python",
+            "entrypoint": "solution.py",
+            "regrade_policy": "new_only_unless_explicit",
+            "explicit_regrade": false,
+            "attempt_count": 1,
+            "final_result_json": {
+              "job_id": "74e4f7a4-e66e-4efb-83a2-151bace8a7fe",
+              "submission_id": "61ebe3d0-0204-4035-be6a-0cad47c67622",
+              "status": "FAILED",
+              "error_code": "Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+              "attempts": [
+                {
+                  "stage": "EXECUTING_RAW",
+                  "passed": false,
+                  "exit_code": 1,
+                  "stdout": "Passed 0/3 testcases.",
+                  "stderr": "Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+                  "score": 0.0,
+                  "shim_used": false,
+                  "shim_source": null
+                }
+              ],
+              "attempt_artifacts": [
+                {
+                  "attempt_index": 1,
+                  "stage": "EXECUTING_RAW",
+                  "shim_used": false,
+                  "executor": "local_subprocess",
+                  "error_code": null,
+                  "comparison_mode": "strict"
+                }
+              ],
+              "shim_decision": {
+                "eligible": false,
+                "reason": "detected_non_shimmable_failure|ai_shim_not_fixable",
+                "comparison_mode": null,
+                "shim_source": null,
+                "analyzed_at": "2026-04-13T20:24:17.031661+00:00",
+                "failed_testcases": [
+                  {
+                    "testcase_id": "tc1",
+                    "failure_tokens": [
+                      "stdout_mismatch"
+                    ],
+                    "eligible": false,
+                    "decision_reason": "output_difference_not_whitespace_only",
+                    "stdout": "26\n",
+                    "stderr": ""
+                  },
+                  {
+                    "testcase_id": "tc2",
+                    "failure_tokens": [
+                      "stdout_mismatch"
+                    ],
+                    "eligible": false,
+                    "decision_reason": "output_difference_not_whitespace_only",
+                    "stdout": "101\n",
+                    "stderr": ""
+                  },
+                  {
+                    "testcase_id": "tc3",
+                    "failure_tokens": [
+                      "stdout_mismatch"
+                    ],
+                    "eligible": false,
+                    "decision_reason": "output_difference_not_whitespace_only",
+                    "stdout": "1\n",
+                    "stderr": ""
+                  }
+                ],
+                "ai_decision": {
+                  "eligible": false,
+                  "reason": "ai_shim_not_fixable",
+                  "comparison_mode": null,
+                  "shim_source": null,
+                  "analyzed_at": "2026-04-13T20:24:17.031632+00:00",
+                  "failed_testcases": [
+                    {
+                      "testcase_id": "tc1",
+                      "failure_tokens": [
+                        "stdout_mismatch"
+                      ],
+                      "eligible": false,
+                      "decision_reason": "output_difference_not_whitespace_only",
+                      "stdout": "26\n",
+                      "stderr": ""
+                    },
+                    {
+                      "testcase_id": "tc2",
+                      "failure_tokens": [
+                        "stdout_mismatch"
+                      ],
+                      "eligible": false,
+                      "decision_reason": "output_difference_not_whitespace_only",
+                      "stdout": "101\n",
+                      "stderr": ""
+                    },
+                    {
+                      "testcase_id": "tc3",
+                      "failure_tokens": [
+                        "stdout_mismatch"
+                      ],
+                      "eligible": false,
+                      "decision_reason": "output_difference_not_whitespace_only",
+                      "stdout": "1\n",
+                      "stderr": ""
+                    }
+                  ],
+                  "ai_reason": "The student code logic (n*n+1) is fundamentally different from the expected output (n*n) for the provided test cases. This is a logic error, not an interface mismatch.",
+                  "model": "gemini-3.1-flash-lite-preview",
+                  "prompt_hash": "b2eb3a2ae042e97337a3f393ceeb108a4012a0ac68666b0c5e26aa14b43ad15b"
+                }
+              },
+              "quality_evaluation": {
+                "enabled": false,
+                "applied": false,
+                "reason": "correctness_not_passed",
+                "weight_percent": 0.0,
+                "mode": "disabled",
+                "correctness_score": 0.0,
+                "max_score": 3.0
+              },
+              "score_breakdown": {
+                "correctness_score": 0.0,
+                "max_score": 3.0,
+                "correctness_percent": 0.0,
+                "quality_applied": false,
+                "quality_mode": "disabled",
+                "quality_weight_percent": 0.0,
+                "quality_score": null,
+                "total_score": 0.0,
+                "total_percent": 0.0
+              }
+            },
+            "error_message": "[Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch] Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+            "queued_at": "2026-04-13T20:24:10.397291Z",
+            "started_at": "2026-04-13T20:24:10.433372Z",
+            "finished_at": "2026-04-13T20:24:17.034623Z",
+            "created_at": "2026-04-13T20:24:10.397295Z",
+            "updated_at": "2026-04-13T20:24:17.034953Z",
+            "attempts": [
+              {
+                "id": "6c9fd40e-825c-4d6c-b425-3709238f192c",
+                "job_id": "74e4f7a4-e66e-4efb-83a2-151bace8a7fe",
+                "attempt_index": 1,
+                "stage": "EXECUTING_RAW",
+                "passed": false,
+                "exit_code": 1,
+                "score": 0.0,
+                "stdout": "Passed 0/3 testcases.",
+                "stderr": "Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+                "shim_used": false,
+                "shim_source": null,
+                "artifacts_json": {
+                  "executor": "local_subprocess",
+                  "enabled": true,
+                  "language": "python",
+                  "comparison_mode": "strict",
+                  "shim_used": false,
+                  "shim_source": null,
+                  "compile_flags": [],
+                  "link_flags": [],
+                  "run_flags": [],
+                  "network_enforced": false,
+                  "max_score": 3.0,
+                  "earned_score": 0.0,
+                  "testcases": [
+                    {
+                      "testcase_id": "tc1",
+                      "passed": false,
+                      "weight": 1.0,
+                      "awarded_score": 0.0,
+                      "exit_code": 0,
+                      "stdout": "26\n",
+                      "stderr": "",
+                      "failure_reason": "stdout_mismatch",
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc2",
+                      "passed": false,
+                      "weight": 1.0,
+                      "awarded_score": 0.0,
+                      "exit_code": 0,
+                      "stdout": "101\n",
+                      "stderr": "",
+                      "failure_reason": "stdout_mismatch",
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc3",
+                      "passed": false,
+                      "weight": 1.0,
+                      "awarded_score": 0.0,
+                      "exit_code": 0,
+                      "stdout": "1\n",
+                      "stderr": "",
+                      "failure_reason": "stdout_mismatch",
+                      "output_truncated": false
+                    }
+                  ],
+                  "warnings": [
+                    "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+                  ]
+                },
+                "started_at": "2026-04-13T20:24:10.439514Z",
+                "finished_at": "2026-04-13T20:24:10.505236Z",
+                "created_at": "2026-04-13T20:24:10.506846Z"
+              }
+            ]
+          }
+        },
+        {
+          "student": "stu-D-45088a",
+          "status": "FAILED",
+          "score": 0.0,
+          "error_code": "Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+          "error_message": "[Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch] Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+          "raw": {
+            "id": "51392c45-cc54-4c42-ade0-a4319a3ca0a7",
+            "assignment_id": "74cf834f-6201-4a1a-8ce4-6d1b6b2e9a55",
+            "submission_id": "9e168b8c-131c-44cd-8547-16937babae89",
+            "environment_version_id": "2382fe1f-2153-46fe-a6dc-b723019b1948",
+            "status": "FAILED",
+            "language": "python",
+            "entrypoint": "solution.py",
+            "regrade_policy": "new_only_unless_explicit",
+            "explicit_regrade": false,
+            "attempt_count": 1,
+            "final_result_json": {
+              "job_id": "51392c45-cc54-4c42-ade0-a4319a3ca0a7",
+              "submission_id": "9e168b8c-131c-44cd-8547-16937babae89",
+              "status": "FAILED",
+              "error_code": "Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+              "attempts": [
+                {
+                  "stage": "EXECUTING_RAW",
+                  "passed": false,
+                  "exit_code": 1,
+                  "stdout": "Passed 1/3 testcases.",
+                  "stderr": "Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+                  "score": 1.0,
+                  "shim_used": false,
+                  "shim_source": null
+                }
+              ],
+              "attempt_artifacts": [
+                {
+                  "attempt_index": 1,
+                  "stage": "EXECUTING_RAW",
+                  "shim_used": false,
+                  "executor": "local_subprocess",
+                  "error_code": null,
+                  "comparison_mode": "strict"
+                }
+              ],
+              "shim_decision": {
+                "eligible": false,
+                "reason": "detected_non_shimmable_failure|ai_shim_fixable_without_patch_rejected",
+                "comparison_mode": null,
+                "shim_source": null,
+                "analyzed_at": "2026-04-13T20:24:17.508386+00:00",
+                "failed_testcases": [
+                  {
+                    "testcase_id": "tc1",
+                    "failure_tokens": [
+                      "stdout_mismatch"
+                    ],
+                    "eligible": false,
+                    "decision_reason": "output_difference_not_whitespace_only",
+                    "stdout": "0\n",
+                    "stderr": ""
+                  },
+                  {
+                    "testcase_id": "tc2",
+                    "failure_tokens": [
+                      "stdout_mismatch"
+                    ],
+                    "eligible": false,
+                    "decision_reason": "output_difference_not_whitespace_only",
+                    "stdout": "0\n",
+                    "stderr": ""
+                  }
+                ],
+                "ai_decision": {
+                  "eligible": false,
+                  "reason": "ai_shim_fixable_without_patch_rejected",
+                  "comparison_mode": null,
+                  "shim_source": null,
+                  "analyzed_at": "2026-04-13T20:24:17.508369+00:00",
+                  "failed_testcases": [
+                    {
+                      "testcase_id": "tc1",
+                      "failure_tokens": [
+                        "stdout_mismatch"
+                      ],
+                      "eligible": false,
+                      "decision_reason": "output_difference_not_whitespace_only",
+                      "stdout": "0\n",
+                      "stderr": ""
+                    },
+                    {
+                      "testcase_id": "tc2",
+                      "failure_tokens": [
+                        "stdout_mismatch"
+                      ],
+                      "eligible": false,
+                      "decision_reason": "output_difference_not_whitespace_only",
+                      "stdout": "0\n",
+                      "stderr": ""
+                    }
+                  ],
+                  "ai_reason": "The program ignores stdin input and prints a hardcoded value. It needs to read from stdin to match the testcase requirements.",
+                  "model": "gemini-3.1-flash-lite-preview",
+                  "prompt_hash": "cd4e77e24ecffa345124f45a2b1322b7f7415759320c0d8b0b659ecb13ffdec6"
+                }
+              },
+              "quality_evaluation": {
+                "enabled": false,
+                "applied": false,
+                "reason": "correctness_not_passed",
+                "weight_percent": 0.0,
+                "mode": "disabled",
+                "correctness_score": 1.0,
+                "max_score": 3.0
+              },
+              "score_breakdown": {
+                "correctness_score": 1.0,
+                "max_score": 3.0,
+                "correctness_percent": 33.333333,
+                "quality_applied": false,
+                "quality_mode": "disabled",
+                "quality_weight_percent": 0.0,
+                "quality_score": null,
+                "total_score": 1.0,
+                "total_percent": 33.333333
+              }
+            },
+            "error_message": "[Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch] Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+            "queued_at": "2026-04-13T20:24:10.403123Z",
+            "started_at": "2026-04-13T20:24:10.596853Z",
+            "finished_at": "2026-04-13T20:24:17.510525Z",
+            "created_at": "2026-04-13T20:24:10.403129Z",
+            "updated_at": "2026-04-13T20:24:17.510838Z",
+            "attempts": [
+              {
+                "id": "1e23292e-e88a-48bb-bdca-6bd9aab3125a",
+                "job_id": "51392c45-cc54-4c42-ade0-a4319a3ca0a7",
+                "attempt_index": 1,
+                "stage": "EXECUTING_RAW",
+                "passed": false,
+                "exit_code": 1,
+                "score": 1.0,
+                "stdout": "Passed 1/3 testcases.",
+                "stderr": "Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+                "shim_used": false,
+                "shim_source": null,
+                "artifacts_json": {
+                  "executor": "local_subprocess",
+                  "enabled": true,
+                  "language": "python",
+                  "comparison_mode": "strict",
+                  "shim_used": false,
+                  "shim_source": null,
+                  "compile_flags": [],
+                  "link_flags": [],
+                  "run_flags": [],
+                  "network_enforced": false,
+                  "max_score": 3.0,
+                  "earned_score": 1.0,
+                  "testcases": [
+                    {
+                      "testcase_id": "tc1",
+                      "passed": false,
+                      "weight": 1.0,
+                      "awarded_score": 0.0,
+                      "exit_code": 0,
+                      "stdout": "0\n",
+                      "stderr": "",
+                      "failure_reason": "stdout_mismatch",
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc2",
+                      "passed": false,
+                      "weight": 1.0,
+                      "awarded_score": 0.0,
+                      "exit_code": 0,
+                      "stdout": "0\n",
+                      "stderr": "",
+                      "failure_reason": "stdout_mismatch",
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc3",
+                      "passed": true,
+                      "weight": 1.0,
+                      "awarded_score": 1.0,
+                      "exit_code": 0,
+                      "stdout": "0\n",
+                      "stderr": "",
+                      "failure_reason": null,
+                      "output_truncated": false
+                    }
+                  ],
+                  "warnings": [
+                    "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+                  ]
+                },
+                "started_at": "2026-04-13T20:24:10.599672Z",
+                "finished_at": "2026-04-13T20:24:10.649048Z",
+                "created_at": "2026-04-13T20:24:10.650466Z"
+              }
+            ]
+          }
+        },
+        {
+          "student": "stu-G-45088a",
+          "status": "COMPLETED",
+          "score": 3.0,
+          "error_code": null,
+          "error_message": null,
+          "raw": {
+            "id": "dbcac709-205d-4f4c-bf17-f7a6ce107799",
+            "assignment_id": "74cf834f-6201-4a1a-8ce4-6d1b6b2e9a55",
+            "submission_id": "94b37da6-6c48-4d3b-becb-6a513e4d80ba",
+            "environment_version_id": "2382fe1f-2153-46fe-a6dc-b723019b1948",
+            "status": "COMPLETED",
+            "language": "python",
+            "entrypoint": "solution.py",
+            "regrade_policy": "new_only_unless_explicit",
+            "explicit_regrade": false,
+            "attempt_count": 1,
+            "final_result_json": {
+              "job_id": "dbcac709-205d-4f4c-bf17-f7a6ce107799",
+              "submission_id": "94b37da6-6c48-4d3b-becb-6a513e4d80ba",
+              "total_score": 3.0,
+              "max_score": 3.0,
+              "status": "COMPLETED",
+              "attempts": [
+                {
+                  "stage": "EXECUTING_RAW",
+                  "passed": true,
+                  "exit_code": 0,
+                  "stdout": "Passed 3/3 testcases.",
+                  "stderr": "",
+                  "score": 3.0,
+                  "shim_used": false,
+                  "shim_source": null
+                }
+              ],
+              "attempt_artifacts": [
+                {
+                  "attempt_index": 1,
+                  "stage": "EXECUTING_RAW",
+                  "shim_used": false,
+                  "executor": "local_subprocess",
+                  "error_code": null,
+                  "comparison_mode": "strict"
+                }
+              ],
+              "quality_evaluation": {
+                "enabled": false,
+                "applied": false,
+                "reason": "quality_mode_disabled_or_weight_zero",
+                "weight_percent": 0.0,
+                "mode": "disabled",
+                "correctness_score": 3.0,
+                "max_score": 3.0
+              },
+              "score_breakdown": {
+                "correctness_score": 3.0,
+                "max_score": 3.0,
+                "correctness_percent": 100.0,
+                "quality_applied": false,
+                "quality_mode": "disabled",
+                "quality_weight_percent": 0.0,
+                "quality_score": null,
+                "total_score": 3.0,
+                "total_percent": 100.0
+              }
+            },
+            "error_message": null,
+            "queued_at": "2026-04-13T20:24:17.420787Z",
+            "started_at": "2026-04-13T20:24:17.595692Z",
+            "finished_at": "2026-04-13T20:24:18.259251Z",
+            "created_at": "2026-04-13T20:24:17.420791Z",
+            "updated_at": "2026-04-13T20:24:18.259580Z",
+            "attempts": [
+              {
+                "id": "fe53b73a-ea4a-483a-8531-c8de01232b23",
+                "job_id": "dbcac709-205d-4f4c-bf17-f7a6ce107799",
+                "attempt_index": 1,
+                "stage": "EXECUTING_RAW",
+                "passed": true,
+                "exit_code": 0,
+                "score": 3.0,
+                "stdout": "Passed 3/3 testcases.",
+                "stderr": "",
+                "shim_used": false,
+                "shim_source": null,
+                "artifacts_json": {
+                  "executor": "local_subprocess",
+                  "enabled": true,
+                  "language": "python",
+                  "comparison_mode": "strict",
+                  "shim_used": false,
+                  "shim_source": null,
+                  "compile_flags": [],
+                  "link_flags": [],
+                  "run_flags": [],
+                  "network_enforced": false,
+                  "max_score": 3.0,
+                  "earned_score": 3.0,
+                  "testcases": [
+                    {
+                      "testcase_id": "tc1",
+                      "passed": true,
+                      "weight": 1.0,
+                      "awarded_score": 1.0,
+                      "exit_code": 0,
+                      "stdout": "25\n",
+                      "stderr": "",
+                      "failure_reason": null,
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc2",
+                      "passed": true,
+                      "weight": 1.0,
+                      "awarded_score": 1.0,
+                      "exit_code": 0,
+                      "stdout": "100\n",
+                      "stderr": "",
+                      "failure_reason": null,
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc3",
+                      "passed": true,
+                      "weight": 1.0,
+                      "awarded_score": 1.0,
+                      "exit_code": 0,
+                      "stdout": "0\n",
+                      "stderr": "",
+                      "failure_reason": null,
+                      "output_truncated": false
+                    }
+                  ],
+                  "warnings": [
+                    "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+                  ]
+                },
+                "started_at": "2026-04-13T20:24:17.598187Z",
+                "finished_at": "2026-04-13T20:24:18.249654Z",
+                "created_at": "2026-04-13T20:24:18.251851Z"
+              }
+            ]
+          }
+        },
+        {
+          "student": "stu-F-45088a",
+          "status": "COMPLETED",
+          "score": 3.0,
+          "error_code": null,
+          "error_message": null,
+          "raw": {
+            "id": "8083db39-6a25-4157-b7b3-0dd341c1cd5e",
+            "assignment_id": "74cf834f-6201-4a1a-8ce4-6d1b6b2e9a55",
+            "submission_id": "3b6ca4bc-9f8b-4fe6-8b39-cc22481e14ab",
+            "environment_version_id": "2382fe1f-2153-46fe-a6dc-b723019b1948",
+            "status": "COMPLETED",
+            "language": "python",
+            "entrypoint": "solution.py",
+            "regrade_policy": "new_only_unless_explicit",
+            "explicit_regrade": false,
+            "attempt_count": 1,
+            "final_result_json": {
+              "job_id": "8083db39-6a25-4157-b7b3-0dd341c1cd5e",
+              "submission_id": "3b6ca4bc-9f8b-4fe6-8b39-cc22481e14ab",
+              "total_score": 3.0,
+              "max_score": 3.0,
+              "status": "COMPLETED",
+              "attempts": [
+                {
+                  "stage": "EXECUTING_RAW",
+                  "passed": true,
+                  "exit_code": 0,
+                  "stdout": "Passed 3/3 testcases.",
+                  "stderr": "",
+                  "score": 3.0,
+                  "shim_used": false,
+                  "shim_source": null
+                }
+              ],
+              "attempt_artifacts": [
+                {
+                  "attempt_index": 1,
+                  "stage": "EXECUTING_RAW",
+                  "shim_used": false,
+                  "executor": "local_subprocess",
+                  "error_code": null,
+                  "comparison_mode": "strict"
+                }
+              ],
+              "quality_evaluation": {
+                "enabled": false,
+                "applied": false,
+                "reason": "quality_mode_disabled_or_weight_zero",
+                "weight_percent": 0.0,
+                "mode": "disabled",
+                "correctness_score": 3.0,
+                "max_score": 3.0
+              },
+              "score_breakdown": {
+                "correctness_score": 3.0,
+                "max_score": 3.0,
+                "correctness_percent": 100.0,
+                "quality_applied": false,
+                "quality_mode": "disabled",
+                "quality_weight_percent": 0.0,
+                "quality_score": null,
+                "total_score": 3.0,
+                "total_percent": 100.0
+              }
+            },
+            "error_message": null,
+            "queued_at": "2026-04-13T20:24:14.644442Z",
+            "started_at": "2026-04-13T20:24:17.523095Z",
+            "finished_at": "2026-04-13T20:24:17.581528Z",
+            "created_at": "2026-04-13T20:24:14.644448Z",
+            "updated_at": "2026-04-13T20:24:17.581876Z",
+            "attempts": [
+              {
+                "id": "8d11d4fb-6b6c-4df7-9d4f-af4ddc1613aa",
+                "job_id": "8083db39-6a25-4157-b7b3-0dd341c1cd5e",
+                "attempt_index": 1,
+                "stage": "EXECUTING_RAW",
+                "passed": true,
+                "exit_code": 0,
+                "score": 3.0,
+                "stdout": "Passed 3/3 testcases.",
+                "stderr": "",
+                "shim_used": false,
+                "shim_source": null,
+                "artifacts_json": {
+                  "executor": "local_subprocess",
+                  "enabled": true,
+                  "language": "python",
+                  "comparison_mode": "strict",
+                  "shim_used": false,
+                  "shim_source": null,
+                  "compile_flags": [],
+                  "link_flags": [],
+                  "run_flags": [],
+                  "network_enforced": false,
+                  "max_score": 3.0,
+                  "earned_score": 3.0,
+                  "testcases": [
+                    {
+                      "testcase_id": "tc1",
+                      "passed": true,
+                      "weight": 1.0,
+                      "awarded_score": 1.0,
+                      "exit_code": 0,
+                      "stdout": "25\n",
+                      "stderr": "",
+                      "failure_reason": null,
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc2",
+                      "passed": true,
+                      "weight": 1.0,
+                      "awarded_score": 1.0,
+                      "exit_code": 0,
+                      "stdout": "100\n",
+                      "stderr": "",
+                      "failure_reason": null,
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc3",
+                      "passed": true,
+                      "weight": 1.0,
+                      "awarded_score": 1.0,
+                      "exit_code": 0,
+                      "stdout": "0\n",
+                      "stderr": "",
+                      "failure_reason": null,
+                      "output_truncated": false
+                    }
+                  ],
+                  "warnings": [
+                    "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+                  ]
+                },
+                "started_at": "2026-04-13T20:24:17.526163Z",
+                "finished_at": "2026-04-13T20:24:17.572768Z",
+                "created_at": "2026-04-13T20:24:17.573905Z"
+              }
+            ]
+          }
+        },
+        {
+          "student": "stu-E-45088a",
+          "status": "FAILED",
+          "score": 0.0,
+          "error_code": "Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1",
+          "error_message": "[Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1] Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1|stdout_mismatch",
+          "raw": {
+            "id": "4a8507e1-df5e-4542-99d9-cefd4f0aacfb",
+            "assignment_id": "74cf834f-6201-4a1a-8ce4-6d1b6b2e9a55",
+            "submission_id": "95aa7113-f01e-48e8-94e8-5ee22a17d196",
+            "environment_version_id": "2382fe1f-2153-46fe-a6dc-b723019b1948",
+            "status": "FAILED",
+            "language": "python",
+            "entrypoint": "solution.py",
+            "regrade_policy": "new_only_unless_explicit",
+            "explicit_regrade": false,
+            "attempt_count": 1,
+            "final_result_json": {
+              "job_id": "4a8507e1-df5e-4542-99d9-cefd4f0aacfb",
+              "submission_id": "95aa7113-f01e-48e8-94e8-5ee22a17d196",
+              "status": "FAILED",
+              "error_code": "Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1",
+              "attempts": [
+                {
+                  "stage": "EXECUTING_RAW",
+                  "passed": false,
+                  "exit_code": 1,
+                  "stdout": "Passed 0/3 testcases.",
+                  "stderr": "Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1|stdout_mismatch",
+                  "score": 0.0,
+                  "shim_used": false,
+                  "shim_source": null
+                }
+              ],
+              "attempt_artifacts": [
+                {
+                  "attempt_index": 1,
+                  "stage": "EXECUTING_RAW",
+                  "shim_used": false,
+                  "executor": "local_subprocess",
+                  "error_code": null,
+                  "comparison_mode": "strict"
+                }
+              ],
+              "shim_decision": {
+                "eligible": false,
+                "reason": "detected_non_shimmable_failure|ai_shim_fixable_without_patch_rejected",
+                "comparison_mode": null,
+                "shim_source": null,
+                "analyzed_at": "2026-04-13T20:24:19.030274+00:00",
+                "failed_testcases": [
+                  {
+                    "testcase_id": "tc1",
+                    "failure_tokens": [
+                      "exit_code_expected_0_got_1",
+                      "stdout_mismatch"
+                    ],
+                    "eligible": false,
+                    "decision_reason": "exit_code_mismatch",
+                    "stdout": "",
+                    "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_aajh39_r/solution.py\", line 1, in <module>\n    raise ValueError('deliberate crash')\nValueError: deliberate crash\n"
+                  },
+                  {
+                    "testcase_id": "tc2",
+                    "failure_tokens": [
+                      "exit_code_expected_0_got_1",
+                      "stdout_mismatch"
+                    ],
+                    "eligible": false,
+                    "decision_reason": "exit_code_mismatch",
+                    "stdout": "",
+                    "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_aajh39_r/solution.py\", line 1, in <module>\n    raise ValueError('deliberate crash')\nValueError: deliberate crash\n"
+                  },
+                  {
+                    "testcase_id": "tc3",
+                    "failure_tokens": [
+                      "exit_code_expected_0_got_1",
+                      "stdout_mismatch"
+                    ],
+                    "eligible": false,
+                    "decision_reason": "exit_code_mismatch",
+                    "stdout": "",
+                    "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_aajh39_r/solution.py\", line 1, in <module>\n    raise ValueError('deliberate crash')\nValueError: deliberate crash\n"
+                  }
+                ],
+                "ai_decision": {
+                  "eligible": false,
+                  "reason": "ai_shim_fixable_without_patch_rejected",
+                  "comparison_mode": null,
+                  "shim_source": null,
+                  "analyzed_at": "2026-04-13T20:24:19.030246+00:00",
+                  "failed_testcases": [
+                    {
+                      "testcase_id": "tc1",
+                      "failure_tokens": [
+                        "exit_code_expected_0_got_1",
+                        "stdout_mismatch"
+                      ],
+                      "eligible": false,
+                      "decision_reason": "exit_code_mismatch",
+                      "stdout": "",
+                      "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_aajh39_r/solution.py\", line 1, in <module>\n    raise ValueError('deliberate crash')\nValueError: deliberate crash\n"
+                    },
+                    {
+                      "testcase_id": "tc2",
+                      "failure_tokens": [
+                        "exit_code_expected_0_got_1",
+                        "stdout_mismatch"
+                      ],
+                      "eligible": false,
+                      "decision_reason": "exit_code_mismatch",
+                      "stdout": "",
+                      "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_aajh39_r/solution.py\", line 1, in <module>\n    raise ValueError('deliberate crash')\nValueError: deliberate crash\n"
+                    },
+                    {
+                      "testcase_id": "tc3",
+                      "failure_tokens": [
+                        "exit_code_expected_0_got_1",
+                        "stdout_mismatch"
+                      ],
+                      "eligible": false,
+                      "decision_reason": "exit_code_mismatch",
+                      "stdout": "",
+                      "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_aajh39_r/solution.py\", line 1, in <module>\n    raise ValueError('deliberate crash')\nValueError: deliberate crash\n"
+                    }
+                  ],
+                  "ai_reason": "The provided solution contains a deliberate crash and lacks implementation for the required stdin input processing.",
+                  "model": "gemini-3.1-flash-lite-preview",
+                  "prompt_hash": "ae655896f2ab101ae4e708632dfd36881cd0068d2754645559c9638217bfa762"
+                }
+              },
+              "quality_evaluation": {
+                "enabled": false,
+                "applied": false,
+                "reason": "correctness_not_passed",
+                "weight_percent": 0.0,
+                "mode": "disabled",
+                "correctness_score": 0.0,
+                "max_score": 3.0
+              },
+              "score_breakdown": {
+                "correctness_score": 0.0,
+                "max_score": 3.0,
+                "correctness_percent": 0.0,
+                "quality_applied": false,
+                "quality_mode": "disabled",
+                "quality_weight_percent": 0.0,
+                "quality_score": null,
+                "total_score": 0.0,
+                "total_percent": 0.0
+              }
+            },
+            "error_message": "[Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1] Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1|stdout_mismatch",
+            "queued_at": "2026-04-13T20:24:14.628694Z",
+            "started_at": "2026-04-13T20:24:17.049601Z",
+            "finished_at": "2026-04-13T20:24:19.032435Z",
+            "created_at": "2026-04-13T20:24:14.628698Z",
+            "updated_at": "2026-04-13T20:24:19.032750Z",
+            "attempts": [
+              {
+                "id": "69d2e3ad-b666-467e-8b3c-13e592839e97",
+                "job_id": "4a8507e1-df5e-4542-99d9-cefd4f0aacfb",
+                "attempt_index": 1,
+                "stage": "EXECUTING_RAW",
+                "passed": false,
+                "exit_code": 1,
+                "score": 0.0,
+                "stdout": "Passed 0/3 testcases.",
+                "stderr": "Some testcases failed. First failing testcase=tc1 reason=exit_code_expected_0_got_1|stdout_mismatch",
+                "shim_used": false,
+                "shim_source": null,
+                "artifacts_json": {
+                  "executor": "local_subprocess",
+                  "enabled": true,
+                  "language": "python",
+                  "comparison_mode": "strict",
+                  "shim_used": false,
+                  "shim_source": null,
+                  "compile_flags": [],
+                  "link_flags": [],
+                  "run_flags": [],
+                  "network_enforced": false,
+                  "max_score": 3.0,
+                  "earned_score": 0.0,
+                  "testcases": [
+                    {
+                      "testcase_id": "tc1",
+                      "passed": false,
+                      "weight": 1.0,
+                      "awarded_score": 0.0,
+                      "exit_code": 1,
+                      "stdout": "",
+                      "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_aajh39_r/solution.py\", line 1, in <module>\n    raise ValueError('deliberate crash')\nValueError: deliberate crash\n",
+                      "failure_reason": "exit_code_expected_0_got_1|stdout_mismatch",
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc2",
+                      "passed": false,
+                      "weight": 1.0,
+                      "awarded_score": 0.0,
+                      "exit_code": 1,
+                      "stdout": "",
+                      "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_aajh39_r/solution.py\", line 1, in <module>\n    raise ValueError('deliberate crash')\nValueError: deliberate crash\n",
+                      "failure_reason": "exit_code_expected_0_got_1|stdout_mismatch",
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc3",
+                      "passed": false,
+                      "weight": 1.0,
+                      "awarded_score": 0.0,
+                      "exit_code": 1,
+                      "stdout": "",
+                      "stderr": "Traceback (most recent call last):\n  File \"/tmp/code_eval_local_aajh39_r/solution.py\", line 1, in <module>\n    raise ValueError('deliberate crash')\nValueError: deliberate crash\n",
+                      "failure_reason": "exit_code_expected_0_got_1|stdout_mismatch",
+                      "output_truncated": false
+                    }
+                  ],
+                  "warnings": [
+                    "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+                  ]
+                },
+                "started_at": "2026-04-13T20:24:17.052079Z",
+                "finished_at": "2026-04-13T20:24:17.100315Z",
+                "created_at": "2026-04-13T20:24:17.101398Z"
+              }
+            ]
+          }
+        },
+        {
+          "student": "stu-H-45088a",
+          "status": "FAILED",
+          "score": 0.0,
+          "error_code": "Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+          "error_message": "[Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch] Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+          "raw": {
+            "id": "51c6bd53-4236-4438-8330-89bba432f34e",
+            "assignment_id": "74cf834f-6201-4a1a-8ce4-6d1b6b2e9a55",
+            "submission_id": "d7ee7454-b5dc-4253-968d-255a48711ee0",
+            "environment_version_id": "2382fe1f-2153-46fe-a6dc-b723019b1948",
+            "status": "FAILED",
+            "language": "python",
+            "entrypoint": "solution.py",
+            "regrade_policy": "new_only_unless_explicit",
+            "explicit_regrade": false,
+            "attempt_count": 1,
+            "final_result_json": {
+              "job_id": "51c6bd53-4236-4438-8330-89bba432f34e",
+              "submission_id": "d7ee7454-b5dc-4253-968d-255a48711ee0",
+              "status": "FAILED",
+              "error_code": "Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+              "attempts": [
+                {
+                  "stage": "EXECUTING_RAW",
+                  "passed": false,
+                  "exit_code": 1,
+                  "stdout": "Passed 0/3 testcases.",
+                  "stderr": "Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+                  "score": 0.0,
+                  "shim_used": false,
+                  "shim_source": null
+                }
+              ],
+              "attempt_artifacts": [
+                {
+                  "attempt_index": 1,
+                  "stage": "EXECUTING_RAW",
+                  "shim_used": false,
+                  "executor": "local_subprocess",
+                  "error_code": null,
+                  "comparison_mode": "strict"
+                }
+              ],
+              "shim_decision": {
+                "eligible": false,
+                "reason": "detected_non_shimmable_failure|ai_shim_not_fixable",
+                "comparison_mode": null,
+                "shim_source": null,
+                "analyzed_at": "2026-04-13T20:24:20.826117+00:00",
+                "failed_testcases": [
+                  {
+                    "testcase_id": "tc1",
+                    "failure_tokens": [
+                      "stdout_mismatch"
+                    ],
+                    "eligible": false,
+                    "decision_reason": "output_difference_not_whitespace_only",
+                    "stdout": "26\n",
+                    "stderr": ""
+                  },
+                  {
+                    "testcase_id": "tc2",
+                    "failure_tokens": [
+                      "stdout_mismatch"
+                    ],
+                    "eligible": false,
+                    "decision_reason": "output_difference_not_whitespace_only",
+                    "stdout": "101\n",
+                    "stderr": ""
+                  },
+                  {
+                    "testcase_id": "tc3",
+                    "failure_tokens": [
+                      "stdout_mismatch"
+                    ],
+                    "eligible": false,
+                    "decision_reason": "output_difference_not_whitespace_only",
+                    "stdout": "1\n",
+                    "stderr": ""
+                  }
+                ],
+                "ai_decision": {
+                  "eligible": false,
+                  "reason": "ai_shim_not_fixable",
+                  "comparison_mode": null,
+                  "shim_source": null,
+                  "analyzed_at": "2026-04-13T20:24:20.826082+00:00",
+                  "failed_testcases": [
+                    {
+                      "testcase_id": "tc1",
+                      "failure_tokens": [
+                        "stdout_mismatch"
+                      ],
+                      "eligible": false,
+                      "decision_reason": "output_difference_not_whitespace_only",
+                      "stdout": "26\n",
+                      "stderr": ""
+                    },
+                    {
+                      "testcase_id": "tc2",
+                      "failure_tokens": [
+                        "stdout_mismatch"
+                      ],
+                      "eligible": false,
+                      "decision_reason": "output_difference_not_whitespace_only",
+                      "stdout": "101\n",
+                      "stderr": ""
+                    },
+                    {
+                      "testcase_id": "tc3",
+                      "failure_tokens": [
+                        "stdout_mismatch"
+                      ],
+                      "eligible": false,
+                      "decision_reason": "output_difference_not_whitespace_only",
+                      "stdout": "1\n",
+                      "stderr": ""
+                    }
+                  ],
+                  "ai_reason": "The student code logic (n*n+1) is fundamentally different from the expected output (n*n) for the provided test cases. This is a logic error, not an interface mismatch.",
+                  "model": "gemini-3.1-flash-lite-preview",
+                  "prompt_hash": "b2eb3a2ae042e97337a3f393ceeb108a4012a0ac68666b0c5e26aa14b43ad15b"
+                }
+              },
+              "quality_evaluation": {
+                "enabled": false,
+                "applied": false,
+                "reason": "correctness_not_passed",
+                "weight_percent": 0.0,
+                "mode": "disabled",
+                "correctness_score": 0.0,
+                "max_score": 3.0
+              },
+              "score_breakdown": {
+                "correctness_score": 0.0,
+                "max_score": 3.0,
+                "correctness_percent": 0.0,
+                "quality_applied": false,
+                "quality_mode": "disabled",
+                "quality_weight_percent": 0.0,
+                "quality_score": null,
+                "total_score": 0.0,
+                "total_percent": 0.0
+              }
+            },
+            "error_message": "[Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch] Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+            "queued_at": "2026-04-13T20:24:18.845495Z",
+            "started_at": "2026-04-13T20:24:18.861754Z",
+            "finished_at": "2026-04-13T20:24:20.828426Z",
+            "created_at": "2026-04-13T20:24:18.845501Z",
+            "updated_at": "2026-04-13T20:24:20.828837Z",
+            "attempts": [
+              {
+                "id": "4075a544-ba4a-43a3-bc3a-59f6da52a1b6",
+                "job_id": "51c6bd53-4236-4438-8330-89bba432f34e",
+                "attempt_index": 1,
+                "stage": "EXECUTING_RAW",
+                "passed": false,
+                "exit_code": 1,
+                "score": 0.0,
+                "stdout": "Passed 0/3 testcases.",
+                "stderr": "Some testcases failed. First failing testcase=tc1 reason=stdout_mismatch",
+                "shim_used": false,
+                "shim_source": null,
+                "artifacts_json": {
+                  "executor": "local_subprocess",
+                  "enabled": true,
+                  "language": "python",
+                  "comparison_mode": "strict",
+                  "shim_used": false,
+                  "shim_source": null,
+                  "compile_flags": [],
+                  "link_flags": [],
+                  "run_flags": [],
+                  "network_enforced": false,
+                  "max_score": 3.0,
+                  "earned_score": 0.0,
+                  "testcases": [
+                    {
+                      "testcase_id": "tc1",
+                      "passed": false,
+                      "weight": 1.0,
+                      "awarded_score": 0.0,
+                      "exit_code": 0,
+                      "stdout": "26\n",
+                      "stderr": "",
+                      "failure_reason": "stdout_mismatch",
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc2",
+                      "passed": false,
+                      "weight": 1.0,
+                      "awarded_score": 0.0,
+                      "exit_code": 0,
+                      "stdout": "101\n",
+                      "stderr": "",
+                      "failure_reason": "stdout_mismatch",
+                      "output_truncated": false
+                    },
+                    {
+                      "testcase_id": "tc3",
+                      "passed": false,
+                      "weight": 1.0,
+                      "awarded_score": 0.0,
+                      "exit_code": 0,
+                      "stdout": "1\n",
+                      "stderr": "",
+                      "failure_reason": "stdout_mismatch",
+                      "output_truncated": false
+                    }
+                  ],
+                  "warnings": [
+                    "Local executor is for controlled development use until strict microVM-only enforcement is enabled."
+                  ]
+                },
+                "started_at": "2026-04-13T20:24:18.866410Z",
+                "finished_at": "2026-04-13T20:24:18.921778Z",
+                "created_at": "2026-04-13T20:24:18.923238Z"
+              }
+            ]
+          }
+        }
+      ],
+      "thread_exceptions": []
+    }
+  ]
+}

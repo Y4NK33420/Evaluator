@@ -44,6 +44,7 @@ class GradeSource(str, enum.Enum):
     ai_corrected = "AI_Corrected"
     ai_healed    = "AI_HEALED"
     ta_manual    = "TA_Manual"
+    code_eval    = "code_eval"
 
 
 class ClassroomStatus(str, enum.Enum):
@@ -117,7 +118,11 @@ class Assignment(Base):
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     published_by: Mapped[str | None] = mapped_column(String(256), nullable=True)
     published_environment_version_id: Mapped[str | None] = mapped_column(
-        ForeignKey("code_eval_environment_versions.id"),
+        ForeignKey(
+            "code_eval_environment_versions.id",
+            name="fk_assignments_published_env_version_id",
+            use_alter=True,
+        ),
         nullable=True,
     )
     created_at:    Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
@@ -325,6 +330,10 @@ class CodeEvalJob(Base):
     attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     final_result_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # grade_id is populated in FINALIZING state once the Grade row has been written
+    grade_id: Mapped[str | None] = mapped_column(
+        ForeignKey("grades.id"), nullable=True, index=True
+    )
     queued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -335,6 +344,7 @@ class CodeEvalJob(Base):
     submission: Mapped["Submission"] = relationship(back_populates="code_eval_jobs")
     environment_version: Mapped["CodeEvalEnvironmentVersion | None"] = relationship(back_populates="jobs")
     attempts: Mapped[list["CodeEvalAttempt"]] = relationship(back_populates="job")
+    grade: Mapped["Grade | None"] = relationship(foreign_keys=[grade_id])
 
 
 class CodeEvalAttempt(Base):

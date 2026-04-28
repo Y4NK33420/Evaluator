@@ -274,6 +274,15 @@ def _ensure_python_dependencies(python_exec, dependencies, sandbox_root, timeout
     if not dependencies:
         return None
 
+    allow_dynamic_installs = _to_text(
+        os.getenv("CODE_EVAL_GUEST_AGENT_ALLOW_DYNAMIC_PIP", "false")
+    ).strip().lower() in ("1", "true", "yes", "on")
+    if not allow_dynamic_installs:
+        raise RuntimeError(
+            "Dynamic dependency installation is disabled in guest runtime. "
+            "Pre-bake dependencies into the environment snapshot."
+        )
+
     dep_dir = os.path.join(sandbox_root, "deps")
     if not os.path.exists(dep_dir):
         os.makedirs(dep_dir)
@@ -319,6 +328,32 @@ def _ensure_python_dependencies(python_exec, dependencies, sandbox_root, timeout
         raise RuntimeError("dependency installation failed: {}".format(message[:800]))
 
     return dep_dir
+
+
+def _resolve_commands(language, entrypoint, argv, python_exec):
+    lang = _to_text(language).strip().lower()
+    if lang == "python":
+        return None, [python_exec, entrypoint] + list(argv)
+
+    if lang == "c":
+        compile_cmd = ["gcc", entrypoint, "-O2", "-std=c11", "-o", ".codeeval_exec"]
+        run_cmd = ["./.codeeval_exec"] + list(argv)
+        return compile_cmd, run_cmd
+
+    if lang == "cpp":
+        compile_cmd = ["g++", entrypoint, "-O2", "-std=c++17", "-o", ".codeeval_exec"]
+        run_cmd = ["./.codeeval_exec"] + list(argv)
+        return compile_cmd, run_cmd
+
+    if lang == "java":
+        class_name = os.path.splitext(os.path.basename(entrypoint))[0]
+        if not class_name:
+            raise ValueError("Invalid Java entrypoint")
+        compile_cmd = ["javac", entrypoint]
+        run_cmd = ["java", "-cp", ".", class_name] + list(argv)
+        return compile_cmd, run_cmd
+
+    raise ValueError("guest agent does not support language '{}'".format(lang))
 
 
 def _run_subprocess(cmd, cwd, stdin_value, timeout_seconds, env_overrides=None):
@@ -395,8 +430,6 @@ def _run_request(payload):
         raise ValueError("missing request object")
 
     language = _to_text(request.get("language") or "").lower()
-    if language != "python":
-        raise ValueError("guest agent currently supports only python")
 
     source_files = request.get("source_files") or {}
     if not isinstance(source_files, dict):
@@ -421,8 +454,16 @@ def _run_request(payload):
     timeout_seconds = float(quota.get("timeout_seconds", 5.0))
     max_output_kb = int(quota.get("max_output_kb", 256))
 
-    python_exec, requested_runtime = _resolve_python_exec(request)
-    dependencies = _extract_python_dependencies(request)
+    requested_runtime = ""
+    environment = request.get("environment")
+    if isinstance(environment, dict):
+        requested_runtime = _to_text(environment.get("runtime") or "").strip().lower()
+
+    python_exec = None
+    dependencies = []
+    if language == "python":
+        python_exec, requested_runtime = _resolve_python_exec(request)
+        dependencies = _extract_python_dependencies(request)
 
     testcase_results = []
     total_score = 0.0
@@ -431,18 +472,19 @@ def _run_request(payload):
     exec_env = None
 
     try:
-        dependency_dir = _ensure_python_dependencies(
-            python_exec,
-            dependencies,
-            sandbox_root,
-            timeout_seconds,
-        )
-        if dependency_dir:
-            exec_env = dict(os.environ)
-            existing_pythonpath = _to_text(exec_env.get("PYTHONPATH") or "").strip()
-            exec_env["PYTHONPATH"] = (
-                dependency_dir + (os.pathsep + existing_pythonpath if existing_pythonpath else "")
+        if language == "python":
+            dependency_dir = _ensure_python_dependencies(
+                python_exec,
+                dependencies,
+                sandbox_root,
+                timeout_seconds,
             )
+            if dependency_dir:
+                exec_env = dict(os.environ)
+                existing_pythonpath = _to_text(exec_env.get("PYTHONPATH") or "").strip()
+                exec_env["PYTHONPATH"] = (
+                    dependency_dir + (os.pathsep + existing_pythonpath if existing_pythonpath else "")
+                )
 
         for idx, testcase in enumerate(testcases):
             if not isinstance(testcase, dict):
@@ -482,11 +524,50 @@ def _run_request(payload):
             if not isinstance(argv, list):
                 argv = []
 
+            compile_cmd, run_cmd = _resolve_commands(
+                language,
+                entrypoint,
+                [_to_text(a) for a in argv],
+                python_exec,
+            )
+
+            if compile_cmd is not None:
+                compile_timeout = max(2.0, min(20.0, timeout_seconds))
+                compile_exit, compile_out, compile_err, compile_timeout_hit = _run_subprocess(
+                    compile_cmd,
+                    case_dir,
+                    None,
+                    compile_timeout,
+                    env_overrides=None,
+                )
+                if compile_timeout_hit or compile_exit != 0:
+                    compile_out, compile_err, compile_output_truncated = _truncate_output(
+                        compile_out,
+                        compile_err,
+                        max_output_kb,
+                    )
+                    reasons = ["compile_timeout" if compile_timeout_hit else "compile_error"]
+                    if compile_output_truncated:
+                        reasons.append("output_truncated")
+                    testcase_results.append(
+                        {
+                            "testcase_id": testcase_id,
+                            "passed": False,
+                            "weight": weight,
+                            "awarded_score": 0.0,
+                            "exit_code": int(compile_exit),
+                            "stdout": compile_out,
+                            "stderr": compile_err,
+                            "failure_reason": "|".join(reasons),
+                        }
+                    )
+                    continue
+
             input_mode = _to_text(testcase.get("input_mode") or "stdin")
             stdin_value = _to_text(testcase.get("stdin") or "") if input_mode == "stdin" else None
 
             exit_code, stdout, stderr, timeout_hit = _run_subprocess(
-                [python_exec, entrypoint] + [_to_text(a) for a in argv],
+                run_cmd,
                 case_dir,
                 stdin_value,
                 timeout_seconds,
@@ -560,6 +641,7 @@ def _run_request(payload):
         "score": round(total_score, 6),
         "artifacts": {
             "engine": "firecracker_guest_agent",
+            "language": language,
             "comparison_mode": comparison_mode,
             "requested_runtime": requested_runtime or "auto",
             "python_exec": python_exec,

@@ -7,6 +7,7 @@ length-prefixed JSON execution request to an in-guest vsock agent.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import socket
 import subprocess
@@ -19,6 +20,45 @@ from app.config import get_settings
 from app.services.code_eval.contracts import AttemptResult, CodeEvalJobRequest
 
 settings = get_settings()
+
+
+def _acquire_serial_lock(lock_path: Path, timeout_seconds: float) -> int:
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    deadline = time.monotonic() + max(timeout_seconds, 1.0)
+    while time.monotonic() < deadline:
+        try:
+            fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            os.write(fd, str(os.getpid()).encode("ascii", errors="ignore"))
+            return fd
+        except FileExistsError:
+            time.sleep(0.1)
+    raise TimeoutError(f"Timed out acquiring runtime serial lock: {lock_path}")
+
+
+def _release_serial_lock(lock_fd: int | None, lock_path: Path) -> None:
+    if lock_fd is None:
+        return
+    try:
+        os.close(lock_fd)
+    except Exception:
+        pass
+    try:
+        lock_path.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+def _sha256_file(path: Path) -> str:
+    import hashlib
+
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        while True:
+            chunk = fh.read(1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def collect_firecracker_preflight() -> dict[str, Any]:
@@ -319,8 +359,16 @@ def execute_firecracker_vsock_backend(
     runtime_mode: str,
 ) -> tuple[AttemptResult, dict[str, Any]]:
     firecracker_bin = settings.code_eval_microvm_firecracker_bin.strip()
-    snapshot_vmstate = settings.code_eval_microvm_snapshot_vmstate_path.strip()
-    snapshot_mem = settings.code_eval_microvm_snapshot_mem_path.strip()
+    snapshot_vmstate = (
+        (request.environment.snapshot_vmstate_path or "").strip()
+        or settings.code_eval_microvm_snapshot_vmstate_path.strip()
+    )
+    snapshot_mem = (
+        (request.environment.snapshot_mem_path or "").strip()
+        or settings.code_eval_microvm_snapshot_mem_path.strip()
+    )
+    expected_vmstate_sha = (request.environment.snapshot_vmstate_sha256 or "").strip().lower()
+    expected_mem_sha = (request.environment.snapshot_mem_sha256 or "").strip().lower()
     preflight = collect_firecracker_preflight()
 
     if not firecracker_bin:
@@ -385,6 +433,61 @@ def execute_firecracker_vsock_backend(
             extra={"firecracker_preflight": preflight},
         )
 
+    if expected_vmstate_sha:
+        actual_vmstate_sha = _sha256_file(Path(snapshot_vmstate)).lower()
+        if actual_vmstate_sha != expected_vmstate_sha:
+            return _runtime_error(
+                stage=stage,
+                shim_used=shim_used,
+                shim_source=shim_source,
+                runtime_mode=runtime_mode,
+                reason="snapshot_vmstate_checksum_mismatch",
+                exit_code=23,
+                stderr=(
+                    "Snapshot vmstate checksum mismatch for selected environment artifact. "
+                    f"expected={expected_vmstate_sha} actual={actual_vmstate_sha}"
+                ),
+                request=request,
+                comparison_mode=comparison_mode,
+                extra={"firecracker_preflight": preflight},
+            )
+
+    if expected_mem_sha:
+        actual_mem_sha = _sha256_file(Path(snapshot_mem)).lower()
+        if actual_mem_sha != expected_mem_sha:
+            return _runtime_error(
+                stage=stage,
+                shim_used=shim_used,
+                shim_source=shim_source,
+                runtime_mode=runtime_mode,
+                reason="snapshot_mem_checksum_mismatch",
+                exit_code=23,
+                stderr=(
+                    "Snapshot memory checksum mismatch for selected environment artifact. "
+                    f"expected={expected_mem_sha} actual={actual_mem_sha}"
+                ),
+                request=request,
+                comparison_mode=comparison_mode,
+                extra={"firecracker_preflight": preflight},
+            )
+
+    if settings.code_eval_microvm_force_no_network and request.quota.network_enabled:
+        return _runtime_error(
+            stage=stage,
+            shim_used=shim_used,
+            shim_source=shim_source,
+            runtime_mode=runtime_mode,
+            reason="network_not_allowed",
+            exit_code=22,
+            stderr=(
+                "MicroVM runtime enforces network isolation. "
+                "Set request.quota.network_enabled=false for this environment."
+            ),
+            request=request,
+            comparison_mode=comparison_mode,
+            extra={"firecracker_preflight": preflight},
+        )
+
     if not Path("/dev/kvm").exists():
         return _runtime_error(
             stage=stage,
@@ -402,6 +505,7 @@ def execute_firecracker_vsock_backend(
     run_id = uuid.uuid4().hex
     socket_dir = Path(settings.code_eval_microvm_api_socket_dir).resolve()
     run_dir = Path(settings.code_eval_microvm_runtime_workdir).resolve() / run_id
+    serial_lock_path = Path(settings.code_eval_microvm_serial_lock_file).resolve()
     api_socket = socket_dir / f"{run_id}.sock"
     vsock_proxy_socket = run_dir / "guest_vsock.sock"
     fallback_vsock_socket = Path(settings.code_eval_microvm_vsock_uds_path).resolve()
@@ -409,10 +513,17 @@ def execute_firecracker_vsock_backend(
     vsock_override_supported = True
 
     proc: subprocess.Popen[Any] | None = None
+    serial_lock_fd: int | None = None
     firecracker_stderr = ""
     runtime_step = "init"
 
     try:
+        runtime_step = "acquire_runtime_lock"
+        serial_lock_fd = _acquire_serial_lock(
+            serial_lock_path,
+            timeout_seconds=settings.code_eval_microvm_firecracker_api_timeout_seconds,
+        )
+
         socket_dir.mkdir(parents=True, exist_ok=True)
         run_dir.mkdir(parents=True, exist_ok=True)
         fallback_vsock_socket.parent.mkdir(parents=True, exist_ok=True)
@@ -569,6 +680,7 @@ def execute_firecracker_vsock_backend(
                 "api_socket": str(api_socket),
                 "snapshot_vmstate_path": snapshot_vmstate,
                 "snapshot_mem_path": snapshot_mem,
+                "runtime_lock": str(serial_lock_path),
                 "vsock_guest_cid": int(settings.code_eval_microvm_vsock_guest_cid),
                 "vsock_port": int(settings.code_eval_microvm_vsock_port),
                 "vsock_proxy_socket": str(active_vsock_socket),
@@ -598,6 +710,7 @@ def execute_firecracker_vsock_backend(
                     "api_socket": str(api_socket),
                     "snapshot_vmstate_path": snapshot_vmstate,
                     "snapshot_mem_path": snapshot_mem,
+                    "runtime_lock": str(serial_lock_path),
                 },
                 "firecracker_preflight": preflight,
             },
@@ -626,3 +739,5 @@ def execute_firecracker_vsock_backend(
                     fh.write(firecracker_stderr)
             except Exception:
                 pass
+
+        _release_serial_lock(serial_lock_fd, serial_lock_path)

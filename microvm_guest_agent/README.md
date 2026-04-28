@@ -5,7 +5,7 @@ This directory contains a reference guest-agent for code-eval microVM execution.
 ## Purpose
 
 - Receive code-eval execution requests over vsock.
-- Execute testcases inside the guest VM.
+- Execute testcases inside the guest VM (Python, C, C++, Java).
 - Return deterministic JSON result payload to the host.
 
 ## Protocol
@@ -52,6 +52,7 @@ Environment variables:
 - `CODE_EVAL_GUEST_AGENT_PORT` (default `7000`)
 - `CODE_EVAL_GUEST_AGENT_PYTHON_EXEC` (optional explicit interpreter path)
 - `CODE_EVAL_GUEST_AGENT_STRICT_RUNTIME` (default `false`; when `true`, fail if requested runtime major version is unavailable)
+- `CODE_EVAL_GUEST_AGENT_ALLOW_DYNAMIC_PIP` (default `false`; when `true`, install request-level pip deps into isolated temp dir)
 
 ## Python Runtime Selection
 
@@ -87,3 +88,5 @@ Dependencies are installed into an isolated per-request target directory via:
 `<python_exec> -m pip install --target <tmp-dir> ...`
 
 That directory is injected through `PYTHONPATH` for testcase execution.
+
+For strict isolation, dynamic installs are disabled by default and environments should be pre-baked into snapshots.
