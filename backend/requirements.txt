@@ -19,6 +19,7 @@ httpx==0.28.1
 requests==2.32.3
 opencv-python-headless==4.11.0.86
 pytesseract==0.3.13
+PyMuPDF==1.26.0
 
 # AI
 openai==1.72.0

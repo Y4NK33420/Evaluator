@@ -1,5 +1,5 @@
 import type {
-    ApprovalItem, Assignment, AssignmentSummary, ClassroomAuthStatus,
+    ApprovalItem, Assignment, AssignmentSummary, ClassroomAuthStatus, ClassroomCoursework, ClassroomSyncStatus,
     CodeEvalJob, CodeEvalJobDetail, EnvironmentVersion, Grade,
     HealthResponse, PublishValidation, RuntimeStatus, Rubric,
     Submission, SyncSummary,
@@ -56,7 +56,10 @@ export async function apiFetch<T>(path: string, opts: ApiOptions = {}): Promise<
 }
 
 // ── Export direct URL builder (for file downloads / images) ───────────────
-export const buildUrl = (path: string, params?: Record<string, string>) =>
+export const buildUrl = (
+    path: string,
+    params?: Record<string, string | number | boolean | undefined | null>,
+) =>
     toUrl(path, params);
 
 // ── API client ─────────────────────────────────────────────────────────────
@@ -118,7 +121,7 @@ export const api = {
             }),
         overrideGrade: (id: string, payload: { total_score: number; breakdown_json: Record<string, unknown>; reason: string; changed_by: string }) =>
             apiFetch<Grade>(`/submissions/${id}/grade-override`, { method: "POST", body: payload }),
-        imageUrl: (id: string) => buildUrl(`/submissions/image/${id}`),
+        imageUrl: (id: string, page?: number) => buildUrl(`/submissions/image/${id}`, { page }),
         dispatchCodeEval: (id: string, opts?: { explicit_regrade?: boolean; changed_by?: string }) =>
             apiFetch<{ job_id: string; submission_id: string; status: string }>(`/submissions/${id}/dispatch-code-eval`, {
                 method: "POST",
@@ -158,12 +161,30 @@ export const api = {
     // ── Classroom ─────────────────────────────────────────────────────────────
     classroom: {
         authStatus: () => apiFetch<ClassroomAuthStatus>("/classroom/auth-status"),
-        generateToken: () => apiFetch<ClassroomAuthStatus>("/classroom/generate-token", { method: "POST" }),
-        status: (assignmentId: string) => apiFetch<SyncSummary & { submissions: unknown[] }>(`/classroom/${assignmentId}/status`),
+        generateToken: (force_reauth = false) =>
+            apiFetch<ClassroomAuthStatus>("/classroom/generate-token", { method: "POST", body: { force_reauth } }),
+        status: (assignmentId: string) => apiFetch<ClassroomSyncStatus>(`/classroom/${assignmentId}/status`),
         ingest: (assignmentId: string, payload: { course_id: string; coursework_id: string; force_reingest?: boolean }) =>
             apiFetch<SyncSummary>(`/classroom/${assignmentId}/ingest`, { method: "POST", body: payload }),
         syncDraft: (assignmentId: string) => apiFetch<SyncSummary>(`/classroom/${assignmentId}/sync-draft`, { method: "POST" }),
         release: (assignmentId: string) => apiFetch<SyncSummary>(`/classroom/${assignmentId}/release`, { method: "POST" }),
+        listCoursework: (courseId: string) =>
+            apiFetch<{ course_id: string; items: ClassroomCoursework[] }>("/classroom/coursework", { params: { course_id: courseId } }),
+        linkCoursework: (assignmentId: string, payload: { course_id: string; coursework_id: string }) =>
+            apiFetch<{ assignment_id: string; course_id: string; coursework_id: string; coursework: ClassroomCoursework }>(
+                `/classroom/${assignmentId}/link-coursework`,
+                { method: "POST", body: payload },
+            ),
+        createCoursework: (assignmentId: string, payload: { course_id: string; publish: boolean; title?: string; description?: string; max_points?: number }) =>
+            apiFetch<{ assignment_id: string; course_id: string; coursework_id: string; coursework: ClassroomCoursework }>(
+                `/classroom/${assignmentId}/create-coursework`,
+                { method: "POST", body: payload },
+            ),
+        updateCoursework: (assignmentId: string, payload: { course_id: string; title?: string; description?: string; max_points?: number; publish?: boolean }) =>
+            apiFetch<{ assignment_id: string; course_id: string; coursework_id: string; coursework: ClassroomCoursework }>(
+                `/classroom/${assignmentId}/coursework`,
+                { method: "PATCH", body: payload },
+            ),
     },
 
     // ── Code Eval ─────────────────────────────────────────────────────────────

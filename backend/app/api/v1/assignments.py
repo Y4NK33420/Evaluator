@@ -173,7 +173,13 @@ def update_assignment(assignment_id: str, body: AssignmentUpdate, db: Session = 
     a = db.get(Assignment, assignment_id)
     if not a:
         raise HTTPException(404, "Assignment not found")
-    for k, v in body.model_dump(exclude_none=True).items():
+    updates = body.model_dump(exclude_none=True)
+    if a.is_published and "authoring_prompt" in updates:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot edit authoring_prompt after publish. Create a new version or republish from updated draft flow.",
+        )
+    for k, v in updates.items():
         setattr(a, k, v)
     db.commit()
     db.refresh(a)

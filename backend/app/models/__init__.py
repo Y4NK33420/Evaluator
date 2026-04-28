@@ -108,6 +108,7 @@ class Assignment(Base):
     classroom_id:  Mapped[str | None] = mapped_column(String(256), nullable=True)
     title:         Mapped[str]  = mapped_column(String(512), nullable=False)
     description:   Mapped[str | None] = mapped_column(Text, nullable=True)
+    authoring_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
     deadline:      Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     max_marks:     Mapped[float] = mapped_column(Float, nullable=False, default=100.0)
     question_type: Mapped[QuestionType] = mapped_column(

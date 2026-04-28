@@ -36,6 +36,13 @@ _SCOPES = [
     "https://www.googleapis.com/auth/drive.readonly",
 ]
 
+_FRIENDLY_SCOPE_NAMES = {
+    "https://www.googleapis.com/auth/classroom.courses.readonly": "Read courses",
+    "https://www.googleapis.com/auth/classroom.coursework.students": "Manage coursework + grades",
+    "https://www.googleapis.com/auth/classroom.rosters.readonly": "Read rosters",
+    "https://www.googleapis.com/auth/drive.readonly": "Read Drive attachments",
+}
+
 
 def _get_services() -> tuple[Any, Any]:
     """Return (classroom_service, drive_service), refreshing credentials as needed."""
@@ -64,14 +71,65 @@ def _get_services() -> tuple[Any, Any]:
                     f"credentials.json not found at {creds_path}. "
                     "Download it from GCP Console → APIs & Services → Credentials."
                 )
-            flow = InstalledAppFlow.from_client_secrets_file(str(creds_path), _SCOPES)
-            creds = flow.run_local_server(port=0)
+            raise PermissionError(
+                "Google token requires interactive re-auth. "
+                "Use /api/v1/classroom/generate-token from UI first."
+            )
         token_path.write_text(creds.to_json())
         log.info("Google credentials saved to %s", token_path)
 
     classroom_svc = build("classroom", "v1", credentials=creds, cache_discovery=False)
     drive_svc = build("drive", "v3", credentials=creds, cache_discovery=False)
     return classroom_svc, drive_svc
+
+
+def regenerate_token(*, force_reauth: bool = False) -> dict:
+    """Run OAuth flow explicitly and return fresh auth status."""
+    from google_auth_oauthlib.flow import InstalledAppFlow
+
+    token_path = Path(settings.google_token_file)
+    creds_path = Path(settings.google_credentials_file)
+    if not creds_path.exists():
+        raise FileNotFoundError(
+            f"credentials.json not found at {creds_path}. "
+            "Download it from GCP Console → APIs & Services → Credentials."
+        )
+
+    if force_reauth and token_path.exists():
+        token_path.unlink()
+        log.info("Removed existing token to force full OAuth re-consent")
+
+    base_port = int(settings.google_oauth_callback_port)
+    span = max(0, int(settings.google_oauth_callback_port_span))
+    last_exc: Exception | None = None
+    creds = None
+    for port in range(base_port, base_port + span + 1):
+        flow = InstalledAppFlow.from_client_secrets_file(str(creds_path), _SCOPES)
+        try:
+            creds = flow.run_local_server(
+                host=settings.google_oauth_callback_host,
+                bind_addr=settings.google_oauth_callback_bind_addr,
+                port=port,
+                open_browser=False,
+                authorization_prompt_message=(
+                    "Open this URL in any browser to authorize Classroom access:\n{url}"
+                ),
+                prompt="consent",
+                access_type="offline",
+                include_granted_scopes="true",
+            )
+            break
+        except OSError as exc:
+            last_exc = exc
+            log.warning("OAuth callback port %s unavailable: %s", port, exc)
+            continue
+    if creds is None:
+        raise RuntimeError(
+            f"No available OAuth callback port in range {base_port}-{base_port + span}"
+        ) from last_exc
+    token_path.write_text(creds.to_json())
+    log.info("Google credentials saved to %s", token_path)
+    return get_auth_status()
 
 
 def get_auth_status() -> dict:
@@ -90,15 +148,132 @@ def get_auth_status() -> dict:
     try:
         from google.oauth2.credentials import Credentials
         creds = Credentials.from_authorized_user_file(str(token_path), _SCOPES)
+        granted_scopes = set(creds.scopes or [])
+        required_scopes = set(_SCOPES)
+        missing_scopes = sorted(required_scopes - granted_scopes)
+        has_required_scopes = len(missing_scopes) == 0
         return {
             "authenticated": True,
             "valid": creds.valid,
             "expired": creds.expired,
             "has_refresh_token": bool(creds.refresh_token),
             "scopes": list(creds.scopes or []),
+            "friendly_scopes": [
+                _FRIENDLY_SCOPE_NAMES.get(scope, scope) for scope in list(creds.scopes or [])
+            ],
+            "required_scopes": list(_SCOPES),
+            "missing_scopes": missing_scopes,
+            "has_required_scopes": has_required_scopes,
+            "ready": bool(creds.valid) and has_required_scopes,
         }
     except Exception as exc:
         return {"authenticated": False, "reason": str(exc)}
+
+
+def get_coursework(course_id: str, coursework_id: str) -> dict:
+    """Fetch a specific coursework record."""
+    classroom_svc, _ = _get_services()
+    return (
+        classroom_svc.courses()
+        .courseWork()
+        .get(courseId=course_id, id=coursework_id)
+        .execute()
+    )
+
+
+def list_coursework(course_id: str, page_size: int = 30) -> list[dict]:
+    """List coursework entries for a course (newest first from Classroom API)."""
+    classroom_svc, _ = _get_services()
+    resp = (
+        classroom_svc.courses()
+        .courseWork()
+        .list(courseId=course_id, pageSize=max(1, min(page_size, 100)))
+        .execute()
+    )
+    return resp.get("courseWork", [])
+
+
+def create_coursework_for_assignment(
+    *,
+    course_id: str,
+    title: str,
+    description: str | None,
+    max_points: float,
+    state: str = "PUBLISHED",
+) -> dict:
+    """Create Classroom coursework for an AMGS assignment."""
+    classroom_svc, _ = _get_services()
+    body = {
+        "title": title,
+        "description": description or "",
+        "workType": "ASSIGNMENT",
+        "state": state,
+        "maxPoints": float(max_points),
+    }
+    return (
+        classroom_svc.courses()
+        .courseWork()
+        .create(courseId=course_id, body=body)
+        .execute()
+    )
+
+
+def update_coursework_for_assignment(
+    *,
+    course_id: str,
+    coursework_id: str,
+    title: str | None = None,
+    description: str | None = None,
+    max_points: float | None = None,
+    state: str | None = None,
+) -> dict:
+    """Patch supported coursework fields for an existing assignment."""
+    classroom_svc, _ = _get_services()
+    body: dict[str, Any] = {}
+    update_mask: list[str] = []
+    if title is not None:
+        body["title"] = title
+        update_mask.append("title")
+    if description is not None:
+        body["description"] = description
+        update_mask.append("description")
+    if max_points is not None:
+        body["maxPoints"] = float(max_points)
+        update_mask.append("maxPoints")
+    if state is not None:
+        body["state"] = state
+        update_mask.append("state")
+    if not update_mask:
+        raise ValueError("No coursework fields provided to update")
+
+    return (
+        classroom_svc.courses()
+        .courseWork()
+        .patch(
+            courseId=course_id,
+            id=coursework_id,
+            updateMask=",".join(update_mask),
+            body=body,
+        )
+        .execute()
+    )
+
+
+def validate_coursework_grade_sync_target(course_id: str, coursework_id: str) -> dict:
+    """Ensure coursework is safe/eligible for grade push from this app."""
+    cw = get_coursework(course_id, coursework_id)
+    checks = {
+        "coursework_exists": bool(cw),
+        "work_type_assignment": cw.get("workType") == "ASSIGNMENT",
+        "associated_with_developer": bool(cw.get("associatedWithDeveloper")),
+    }
+    missing = [k for k, ok in checks.items() if not ok]
+    return {
+        "coursework": cw,
+        "checks": checks,
+        "ready": not missing,
+        "missing": missing,
+    }
 
 
 # ── Submission ingestion ───────────────────────────────────────────────────────

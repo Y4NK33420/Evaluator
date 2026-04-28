@@ -18,6 +18,7 @@ export interface Assignment {
     classroom_id: string | null;
     title: string;
     description: string | null;
+    authoring_prompt: string | null;
     deadline: string | null;
     max_marks: number;
     question_type: QuestionType;
@@ -67,6 +68,7 @@ export interface OcrBlock {
     bbox?: [number, number, number, number]; // [x, y, w, h] normalised 0-1
     confidence?: number;
     flagged?: boolean;
+    page?: number;
 }
 
 export interface Rubric {
@@ -217,6 +219,10 @@ export interface ClassroomAuthStatus {
     has_refresh_token?: boolean;
     scopes?: string[];
     friendly_scopes?: string[];
+    required_scopes?: string[];
+    missing_scopes?: string[];
+    has_required_scopes?: boolean;
+    ready?: boolean;
     // When not authenticated:
     reason?: string;        // "token_missing" | error string
     token_path?: string;
@@ -237,6 +243,36 @@ export interface SyncSummary {
     skipped: number;
     errors: unknown[];
     status: string;
+}
+
+export interface ClassroomCoursework {
+    id: string;
+    title: string;
+    state?: string;
+    workType?: string;
+    maxPoints?: number;
+    associatedWithDeveloper?: boolean;
+    updateTime?: string;
+}
+
+export interface ClassroomSyncStatus extends SyncSummary {
+    course_id?: string;
+    classroom_id?: string | null;
+    total_submissions: number;
+    graded: number;
+    ungraded: number;
+    sync_checks?: Record<string, boolean>;
+    sync_missing?: string[];
+    coursework?: ClassroomCoursework | null;
+    submissions: Array<{
+        submission_id: string;
+        student_id: string;
+        student_name: string | null;
+        status: string;
+        graded: boolean;
+        total_score: number | null;
+        grade_source: string | null;
+    }>;
 }
 
 export interface PublishValidation {

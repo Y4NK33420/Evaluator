@@ -32,6 +32,10 @@ Rules:
 - If an answer is cut off mid-sentence, mark is_truncated: true for that question.
 - Sum of all question marks must equal total_score exactly.
 - total_score must not exceed max_marks.
+- Before returning, perform an internal arithmetic self-check:
+  - breakdown[Q].marks_awarded must equal the sum of that question's detailed rows in score_details.
+  - total_score must equal the sum implied by score_details.
+  - If any mismatch exists, fix the JSON values before returning.
 
 Return ONLY valid JSON — no markdown fences, no commentary."""
 
@@ -380,14 +384,87 @@ def _normalize_total_score(result: dict, scoring_mode: str) -> None:
         result["total_score"] = round(derived_total, 4)
 
 
+def _rebuild_breakdown_from_score_details(result: dict, scoring_mode: str) -> None:
+    """Authoritative post-processing: derive breakdown marks from score_details."""
+    details = result.get("score_details")
+    if not isinstance(details, dict):
+        return
+
+    existing = result.get("breakdown")
+    if not isinstance(existing, dict):
+        existing = {}
+
+    if scoring_mode == "question_level":
+        rows = details.get("question_scores", [])
+        if not isinstance(rows, list):
+            return
+        rebuilt: dict[str, dict] = {}
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            qid = str(row.get("question_id", "")).strip()
+            if not qid:
+                continue
+            prev = existing.get(qid) if isinstance(existing.get(qid), dict) else {}
+            rebuilt[qid] = {
+                "marks_awarded": _to_float(row.get("marks_awarded", 0.0)),
+                "max_marks": _to_float(row.get("max_marks", 0.0)),
+                "feedback": str(prev.get("feedback", row.get("feedback", ""))),
+                "is_truncated": bool(prev.get("is_truncated", result.get("is_truncated", False))),
+            }
+        if rebuilt:
+            result["breakdown"] = rebuilt
+        return
+
+    if scoring_mode == "rubric_step_level":
+        rows = details.get("rubric_step_scores", [])
+        if not isinstance(rows, list):
+            return
+        agg: dict[str, dict] = {}
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            qid = str(row.get("question_id", "")).strip()
+            if not qid:
+                continue
+            marks = _to_float(row.get("marks_awarded", 0.0))
+            max_marks = _to_float(row.get("max_marks", 0.0))
+            slot = agg.setdefault(qid, {"marks_awarded": 0.0, "max_marks": 0.0})
+            slot["marks_awarded"] += marks
+            slot["max_marks"] += max_marks
+
+        rebuilt: dict[str, dict] = {}
+        for qid, sums in agg.items():
+            prev = existing.get(qid) if isinstance(existing.get(qid), dict) else {}
+            rebuilt[qid] = {
+                "marks_awarded": round(_to_float(sums.get("marks_awarded", 0.0)), 4),
+                "max_marks": round(_to_float(sums.get("max_marks", 0.0)), 4),
+                "feedback": str(prev.get("feedback", "")),
+                "is_truncated": bool(prev.get("is_truncated", result.get("is_truncated", False))),
+            }
+        if rebuilt:
+            result["breakdown"] = rebuilt
+        return
+
+    # hybrid_code: keep question-level narrative breakdown from model,
+    # because coding-weight composition can intentionally diverge from raw sums.
+    return
+
+
 def _build_ocr_text(ocr_result: dict) -> str:
     blocks = ocr_result.get("blocks", [])
     if not blocks:
         return "(No OCR text extracted)"
     lines = []
     for b in blocks:
+        page = b.get("page")
         q = b.get("question", "")
-        prefix = f"[{q}] " if q else ""
+        parts = []
+        if page is not None:
+            parts.append(f"p{page}")
+        if q:
+            parts.append(str(q))
+        prefix = f"[{' | '.join(parts)}] " if parts else ""
         lines.append(f"{prefix}{b.get('content', '').strip()}")
     return "\n".join(lines)
 
@@ -538,7 +615,8 @@ def grade_submission(
         (
             prompt
             + "\n\nIMPORTANT: score_details and breakdown must be fully populated "
-              "with concrete entries. Do not return empty objects."
+              "with concrete entries. Do not return empty objects. "
+              "Run a final arithmetic self-check and fix any mismatch before returning."
         ),
     ]
     for attempt, attempt_prompt in enumerate(prompts, start=1):
@@ -584,6 +662,7 @@ def grade_submission(
 
     result.pop("breakdown_entries", None)
     _normalize_total_score(result, scoring_mode)
+    _rebuild_breakdown_from_score_details(result, scoring_mode)
 
     result["assignment_id"] = str(assignment.id)
     result["ocr_engine"]    = ocr_result.get("engine", "unknown")

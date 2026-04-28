@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     # ── Google Classroom OAuth ────────────────────────────────────────────────
     google_credentials_file: str = "app/services/google_auth/credentials.json"
     google_token_file:       str = "app/services/google_auth/token.json"
+    google_oauth_callback_host: str = "localhost"
+    google_oauth_callback_bind_addr: str = "0.0.0.0"
+    google_oauth_callback_port: int = 8090
+    google_oauth_callback_port_span: int = 8
     # Default course to use when not specified per-request
     google_classroom_default_course_id: str = ""
 

@@ -16,7 +16,15 @@ type ClassroomCheckState =
     | { phase: "idle" }
     | { phase: "checking" }
     | { phase: "backend_offline"; url: string }
-    | { phase: "connected"; expired: boolean; has_refresh: boolean; scopes: string[] }
+    | {
+        phase: "connected";
+        expired: boolean;
+        has_refresh: boolean;
+        scopes: string[];
+        missing_scopes: string[];
+        has_required_scopes: boolean;
+        ready: boolean;
+    }
     | { phase: "token_missing"; credentials_ok: boolean }
     | { phase: "token_invalid"; reason: string }
     | { phase: "generating" }
@@ -28,10 +36,12 @@ function ClassroomBanner({
     state,
     onCheck,
     onGenerate,
+    onForceGenerate,
 }: {
     state: ClassroomCheckState;
     onCheck: () => void;
     onGenerate: () => void;
+    onForceGenerate: () => void;
 }) {
     const [showScopes, setShowScopes] = useState(false);
 
@@ -93,7 +103,7 @@ function ClassroomBanner({
     }
 
     if (state.phase === "connected") {
-        const isFullyOk = !state.expired || state.has_refresh;
+        const isFullyOk = state.ready || ((!state.expired || state.has_refresh) && state.has_required_scopes);
         return (
             <div style={bannerStyle(isFullyOk ? "success" : "warning")}>
                 <CheckCircle size={16} style={{ color: isFullyOk ? "var(--success)" : "var(--warning)", flexShrink: 0, marginTop: 2 }} />
@@ -108,6 +118,11 @@ function ClassroomBanner({
                                 ? "Token expired but will auto-refresh on first use."
                                 : "OAuth credentials valid."}
                     </div>
+                    {!state.has_required_scopes && (
+                        <div style={{ fontSize: 11, color: "var(--warning)", marginTop: 2 }}>
+                            Missing required scopes: {state.missing_scopes.length}
+                        </div>
+                    )}
                     {state.scopes.length > 0 && (
                         <button
                             onClick={() => setShowScopes(s => !s)}
@@ -123,11 +138,14 @@ function ClassroomBanner({
                         </div>
                     )}
                 </div>
-                {(state.expired && !state.has_refresh) && (
+                <div className="flex items-center gap-2" style={{ marginLeft: "auto" }}>
                     <button className="btn btn-ghost btn-sm" onClick={onGenerate} style={{ fontSize: 11, flexShrink: 0 }}>
-                        <Zap size={11} /> Regenerate
+                        <Zap size={11} /> Reconnect
                     </button>
-                )}
+                    <button className="btn btn-ghost btn-sm" onClick={onForceGenerate} style={{ fontSize: 11, flexShrink: 0 }}>
+                        <RefreshCw size={11} /> Force Re-auth
+                    </button>
+                </div>
             </div>
         );
     }
@@ -157,7 +175,7 @@ function ClassroomBanner({
                     )}
                 </div>
                 {state.credentials_ok && (
-                    <button className="btn btn-ghost btn-sm" onClick={onGenerate} style={{ fontSize: 11, flexShrink: 0, color: "var(--warning)" }}>
+                    <button className="btn btn-ghost btn-sm" onClick={onForceGenerate} style={{ fontSize: 11, flexShrink: 0, color: "var(--warning)" }}>
                         <Zap size={11} /> Generate Token
                     </button>
                 )}
@@ -170,10 +188,10 @@ function ClassroomBanner({
             <div style={bannerStyle("neutral")}>
                 <RefreshCw size={16} style={{ color: "var(--accent)", animation: "spin 1.2s linear infinite", flexShrink: 0, marginTop: 2 }} />
                 <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Opening Browser…</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Starting OAuth…</div>
                     <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                        A browser window should open on the server. Complete the Google sign-in and return here.
-                        This may take up to 60 seconds.
+                        If a browser does not open automatically, check backend logs for the Google auth URL and open it manually.
+                        Then complete sign-in and return here.
                     </div>
                 </div>
             </div>
@@ -190,7 +208,7 @@ function ClassroomBanner({
                         {state.message}
                     </div>
                 </div>
-                <button className="btn btn-ghost btn-sm" onClick={onGenerate} style={{ fontSize: 11, flexShrink: 0 }}>
+                <button className="btn btn-ghost btn-sm" onClick={onForceGenerate} style={{ fontSize: 11, flexShrink: 0 }}>
                     <RefreshCw size={11} /> Retry
                 </button>
             </div>
@@ -208,7 +226,7 @@ function ClassroomBanner({
                         {state.reason}
                     </div>
                 </div>
-                <button className="btn btn-ghost btn-sm" onClick={onGenerate} style={{ fontSize: 11, flexShrink: 0 }}>
+                <button className="btn btn-ghost btn-sm" onClick={onForceGenerate} style={{ fontSize: 11, flexShrink: 0 }}>
                     <Zap size={11} /> Regenerate
                 </button>
             </div>
@@ -246,6 +264,9 @@ export default function LoginPage() {
                     expired: Boolean(s.expired),
                     has_refresh: Boolean(s.has_refresh_token),
                     scopes: s.scopes ?? [],
+                    missing_scopes: s.missing_scopes ?? [],
+                    has_required_scopes: Boolean(s.has_required_scopes),
+                    ready: Boolean(s.ready),
                 });
             } else {
                 const reason = s.reason ?? "";
@@ -269,16 +290,19 @@ export default function LoginPage() {
         }
     };
 
-    const generateToken = async () => {
+    const generateToken = async (forceReauth = false) => {
         setCheckState({ phase: "generating" });
         try {
-            const s = await api.classroom.generateToken();
+            const s = await api.classroom.generateToken(forceReauth);
             if (s.authenticated) {
                 setCheckState({
                     phase: "connected",
                     expired: Boolean(s.expired),
                     has_refresh: Boolean(s.has_refresh_token),
                     scopes: s.scopes ?? [],
+                    missing_scopes: s.missing_scopes ?? [],
+                    has_required_scopes: Boolean(s.has_required_scopes),
+                    ready: Boolean(s.ready),
                 });
             } else {
                 setCheckState({
@@ -349,11 +373,12 @@ export default function LoginPage() {
                         exit={{ opacity: 0, scale: 0.97 }}
                         transition={{ duration: 0.15 }}
                     >
-                        <ClassroomBanner
-                            state={checkState}
-                            onCheck={checkStatus}
-                            onGenerate={generateToken}
-                        />
+                <ClassroomBanner
+                    state={checkState}
+                    onCheck={checkStatus}
+                    onGenerate={() => generateToken(false)}
+                    onForceGenerate={() => generateToken(true)}
+                />
                     </motion.div>
                 </AnimatePresence>
 

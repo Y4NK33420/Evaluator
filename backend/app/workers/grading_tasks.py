@@ -94,6 +94,7 @@ def run_grading_task(self, submission_id: str):
         ))
 
         submission.status = SubmissionStatus.graded
+        submission.error_message = None
         db.commit()
 
         log.info("Grading done for %s — score=%.1f/%.1f",

@@ -56,6 +56,7 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
+      - "8090-8098:8090-8098"
     volumes:
       - uploads:/data/uploads
       # Classroom OAuth credentials — mount the whole directory so Docker
@@ -70,6 +71,10 @@ services:
       - GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI:-true}
       - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
       - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+      - GOOGLE_OAUTH_CALLBACK_HOST=${GOOGLE_OAUTH_CALLBACK_HOST:-localhost}
+      - GOOGLE_OAUTH_CALLBACK_BIND_ADDR=${GOOGLE_OAUTH_CALLBACK_BIND_ADDR:-0.0.0.0}
+      - GOOGLE_OAUTH_CALLBACK_PORT=${GOOGLE_OAUTH_CALLBACK_PORT:-8090}
+      - GOOGLE_OAUTH_CALLBACK_PORT_SPAN=${GOOGLE_OAUTH_CALLBACK_PORT_SPAN:-8}
       - DEFAULT_MODEL=${AMGS_DEFAULT_MODEL:-${DEFAULT_MODEL:-gemini-2.5-flash}}
       - SUBJECTIVE_OCR_MODEL=${SUBJECTIVE_OCR_MODEL:-}
       - OBJECTIVE_OCR_MODEL=${OBJECTIVE_OCR_MODEL:-}

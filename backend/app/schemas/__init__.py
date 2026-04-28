@@ -27,6 +27,7 @@ class AssignmentCreate(BaseModel):
     classroom_id:      Optional[str] = None
     title:             str
     description:       Optional[str] = None
+    authoring_prompt:  Optional[str] = None
     deadline:          Optional[datetime] = None
     max_marks:         float = 100.0
     question_type:     QuestionType = QuestionType.subjective
@@ -36,6 +37,7 @@ class AssignmentCreate(BaseModel):
 class AssignmentUpdate(BaseModel):
     title:             Optional[str] = None
     description:       Optional[str] = None
+    authoring_prompt:  Optional[str] = None
     deadline:          Optional[datetime] = None
     max_marks:         Optional[float] = None
     question_type:     Optional[QuestionType] = None
@@ -49,6 +51,7 @@ class AssignmentOut(BaseModel):
     classroom_id:      Optional[str]
     title:             str
     description:       Optional[str]
+    authoring_prompt:  Optional[str]
     deadline:          Optional[datetime]
     max_marks:         float
     question_type:     QuestionType

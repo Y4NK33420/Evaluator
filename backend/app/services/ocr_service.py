@@ -27,14 +27,44 @@ settings = get_settings()
 
 # ── Gemini prompt for OCR ─────────────────────────────────────────────────────
 
-_OCR_PROMPT = 'Extract as JSON: {"Question Number": {"Sub-question": "Answer"}}'
+_OCR_PROMPT = """
+Extract answers from this page and return strict JSON.
+Each extracted answer must include model confidence from 0 to 1.
+
+Return format:
+{
+  "response": [
+    {
+      "question": "Q1",
+      "sub_question": "a",
+      "answer": "text",
+      "confidence": 0.93
+    }
+  ]
+}
+
+Rules:
+- Do not invent answers.
+- Keep confidence calibrated; do not default to one repeated number.
+- If sub-question is absent, set it to null.
+"""
 
 _OCR_RESPONSE_SCHEMA = {
     "type": "OBJECT",
     "properties": {
         "response": {
-            "type": "STRING",
-            "description": "Stringified JSON of extracted question-wise answers",
+        "type": "ARRAY",
+        "items": {
+            "type": "OBJECT",
+            "properties": {
+                "question": {"type": "STRING"},
+                "sub_question": {"type": "STRING"},
+                "answer": {"type": "STRING"},
+                "confidence": {"type": "NUMBER"},
+            },
+            "required": ["question", "answer", "confidence"],
+            "propertyOrdering": ["question", "sub_question", "answer", "confidence"],
+        },
         }
     },
     "required": ["response"],
@@ -140,21 +170,15 @@ def _gemini_ocr(image_bytes: bytes, model_name: str) -> dict:
             config=cfg,
             operation="Gemini OCR",
         )
-        response_str = str(parsed.get("response", ""))
-        # Try to parse the inner JSON string; fall back to raw string block
-        try:
-            inner = robust_json_loads(response_str)
-        except Exception:
-            inner = {"raw": response_str}
-
-        blocks = _flatten_gemini_ocr(inner)
+        response_payload = parsed.get("response", [])
+        blocks = _flatten_gemini_ocr(response_payload)
         flagged = sum(1 for b in blocks if b.get("flagged"))
         return {
             "blocks":        blocks,
             "block_count":   len(blocks),
             "flagged_count": flagged,
             "engine":        "gemini",
-            "raw_text":      response_str,
+            "raw_text":      str(response_payload),
             "model":         model_name,
         }
     except (ModelServiceTransientError, ModelServicePermanentError):
@@ -165,14 +189,33 @@ def _gemini_ocr(image_bytes: bytes, model_name: str) -> dict:
                 "engine": "gemini", "error": str(exc)}
 
 
-def _flatten_gemini_ocr(inner: dict) -> list[dict]:
+def _flatten_gemini_ocr(inner: dict | list | str) -> list[dict]:
     """
     Convert Gemini's {"Q1": {"a": "...", "b": "..."}} structure
     into a flat list of OCRBlock-like dicts.
     """
     blocks = []
     idx = 0
-    if isinstance(inner, dict):
+    if isinstance(inner, list):
+        for item in inner:
+            if not isinstance(item, dict):
+                continue
+            q_num = str(item.get("question", "")).strip() or "Q?"
+            sub_q_raw = item.get("sub_question")
+            sub_q = str(sub_q_raw).strip() if sub_q_raw is not None else ""
+            question_key = f"{q_num}.{sub_q}" if sub_q else q_num
+            confidence = _normalize_confidence(item.get("confidence"))
+            blocks.append({
+                "index": idx,
+                "label": "text",
+                "content": str(item.get("answer", "")),
+                "bbox_2d": None,
+                "confidence": confidence,
+                "flagged": confidence < settings.ocr_confidence_threshold,
+                "question": question_key,
+            })
+            idx += 1
+    elif isinstance(inner, dict):
         for q_num, sub in inner.items():
             if isinstance(sub, dict):
                 for sub_q, answer in sub.items():
@@ -194,6 +237,27 @@ def _flatten_gemini_ocr(inner: dict) -> list[dict]:
                     "question": q_num,
                 })
                 idx += 1
+    elif isinstance(inner, str):
+        # Backward compatibility: old "response" may be a stringified JSON payload.
+        try:
+            parsed = robust_json_loads(inner)
+            return _flatten_gemini_ocr(parsed)
+        except Exception:
+            blocks.append({
+                "index": 0,
+                "label": "text",
+                "content": inner,
+                "bbox_2d": None,
+                "confidence": 0.0,
+                "flagged": True,
+                "question": "raw",
+            })
     return blocks
 
 
+def _normalize_confidence(value: object) -> float:
+    try:
+        conf = float(value)
+    except Exception:
+        return 0.0
+    return max(0.0, min(1.0, conf))

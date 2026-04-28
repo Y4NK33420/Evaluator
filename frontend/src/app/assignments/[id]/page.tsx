@@ -47,7 +47,7 @@ function CheckRow({ name, ok }: { name: string; ok: boolean }) {
 
 // ── Overview Tab ─────────────────────────────────────────────────────────
 
-function OverviewTab({ assignment, rubric, validation, onPublish, publishing, onSwitchTab, envVersions, hasApprovedTests }: {
+function OverviewTab({ assignment, rubric, validation, onPublish, publishing, onSwitchTab, envVersions, hasApprovedTests, onUpdateAuthoringPrompt }: {
     assignment: Assignment;
     rubric: Rubric | null;
     validation: PublishValidation | null;
@@ -56,8 +56,11 @@ function OverviewTab({ assignment, rubric, validation, onPublish, publishing, on
     onSwitchTab: (tab: string) => void;
     envVersions: EnvironmentVersion[];
     hasApprovedTests: boolean;
+    onUpdateAuthoringPrompt: (nextPrompt: string) => Promise<void>;
 }) {
     const router = useRouter();
+    const [editingPrompt, setEditingPrompt] = useState(false);
+    const [draftPrompt, setDraftPrompt] = useState(assignment.authoring_prompt ?? assignment.description ?? "");
 
     // Derive checklist state from live data, not from validation.checks keys
     const readyEnv = envVersions.find(e => e.status === "ready");
@@ -89,6 +92,31 @@ function OverviewTab({ assignment, rubric, validation, onPublish, publishing, on
                     {assignment.description && (
                         <div style={{ marginTop: "var(--space-4)", padding: "var(--space-3)", background: "var(--bg-elevated)", borderRadius: "var(--radius)", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.7 }}>
                             {assignment.description}
+                        </div>
+                    )}
+                </div>
+                <div className="card">
+                    <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-3)" }}>
+                        <h3 className="section-title">Original Prompt</h3>
+                        {!assignment.is_published && (
+                            <button className="btn btn-ghost btn-sm" onClick={() => setEditingPrompt(v => !v)}>
+                                <Edit3 size={13} /> {editingPrompt ? "Cancel" : "Edit Prompt"}
+                            </button>
+                        )}
+                    </div>
+                    {editingPrompt ? (
+                        <div className="flex flex-col gap-2">
+                            <textarea className="textarea" rows={8} value={draftPrompt} onChange={e => setDraftPrompt(e.target.value)} />
+                            <div className="flex items-center gap-2">
+                                <button className="btn btn-primary btn-sm" onClick={async () => { await onUpdateAuthoringPrompt(draftPrompt); setEditingPrompt(false); }}>
+                                    Save Prompt
+                                </button>
+                                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Draft-only editable. Publish locks this prompt.</span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{ whiteSpace: "pre-wrap", marginTop: "var(--space-2)", padding: "var(--space-3)", background: "var(--bg-elevated)", borderRadius: "var(--radius)", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.7 }}>
+                            {(assignment.authoring_prompt ?? "").trim() || "No prompt saved for this assignment."}
                         </div>
                     )}
                 </div>
@@ -801,51 +829,119 @@ function SubmissionsTab({ assignmentId, maxMarks }: { assignmentId: string; maxM
 // ── Classroom Tab ───────────────────────────────────────────────
 
 
-// ── ClassroomSyncSummaryWithRows extends SyncSummary with submission rows
-type ClassroomStatus = SyncSummary & {
-    total_submissions: number;
-    graded: number;
-    ungraded: number;
-    submissions: Array<{
-        submission_id: string;
-        student_id: string;
-        student_name: string | null;
-        status: string;
-        graded: boolean;
-        total_score: number | null;
-        grade_source: string | null;
-    }>;
-};
-
 function ClassroomTab({ assignment }: { assignment: Assignment }) {
+    const qc = useQueryClient();
     const { toast } = useToast();
+    const [courseIdInput, setCourseIdInput] = useState(assignment.course_id || "");
+    const [courseworkIdInput, setCourseworkIdInput] = useState(assignment.classroom_id || "");
+    const [publishOnCreate, setPublishOnCreate] = useState(true);
+    const [forceReingest, setForceReingest] = useState(false);
+
     const { data: status } = useQuery({
         queryKey: ["classroom-status", assignment.id],
-        queryFn: () => api.classroom.status(assignment.id) as Promise<ClassroomStatus>,
+        queryFn: () => api.classroom.status(assignment.id),
     });
     const { data: authStatus } = useQuery({
         queryKey: ["classroom-auth"],
         queryFn: api.classroom.authStatus,
     });
+    const { data: courseworkList } = useQuery({
+        queryKey: ["classroom-coursework-list", assignment.id, courseIdInput],
+        queryFn: () => api.classroom.listCoursework(courseIdInput.trim()),
+        enabled: !!courseIdInput.trim() && !!authStatus?.authenticated,
+    });
+
+    const refreshAll = () => {
+        qc.invalidateQueries({ queryKey: ["classroom-status", assignment.id] });
+        qc.invalidateQueries({ queryKey: ["assignment", assignment.id] });
+        qc.invalidateQueries({ queryKey: ["submissions-tab", assignment.id] });
+        qc.invalidateQueries({ queryKey: ["classroom-auth"] });
+    };
+
+    const reconnectClassroom = useMutation({
+        mutationFn: (forceReauth: boolean) => api.classroom.generateToken(forceReauth),
+        onSuccess: (s) => {
+            if (s.ready) {
+                toast("success", "Classroom connected", "Token refreshed with required scopes.");
+            } else {
+                const missing = (s.missing_scopes ?? []).length;
+                toast("warning", "Reconnect completed", missing ? `${missing} required scopes still missing.` : "Token updated.");
+            }
+            refreshAll();
+        },
+        onError: (e: Error) => toast("error", "Reconnect failed", e.message),
+    });
+
+    const linkCoursework = useMutation({
+        mutationFn: () => api.classroom.linkCoursework(assignment.id, {
+            course_id: courseIdInput.trim(),
+            coursework_id: courseworkIdInput.trim(),
+        }),
+        onSuccess: () => {
+            toast("success", "Classroom linked", "Coursework linked to this assignment.");
+            refreshAll();
+        },
+        onError: (e: Error) => toast("error", "Link failed", e.message),
+    });
+
+    const createCoursework = useMutation({
+        mutationFn: () => api.classroom.createCoursework(assignment.id, {
+            course_id: courseIdInput.trim(),
+            publish: publishOnCreate,
+        }),
+        onSuccess: (res) => {
+            setCourseworkIdInput(res.coursework_id);
+            toast("success", "Coursework created", `Created and linked coursework ${res.coursework_id}.`);
+            refreshAll();
+        },
+        onError: (e: Error) => toast("error", "Create coursework failed", e.message),
+    });
+
+    const updateCoursework = useMutation({
+        mutationFn: () => api.classroom.updateCoursework(assignment.id, {
+            course_id: courseIdInput.trim(),
+            title: assignment.title,
+            description: assignment.description ?? undefined,
+            max_points: assignment.max_marks,
+            publish: assignment.is_published,
+        }),
+        onSuccess: () => {
+            toast("success", "Coursework updated", "Classroom coursework updated from AMGS assignment.");
+            refreshAll();
+        },
+        onError: (e: Error) => toast("error", "Update coursework failed", e.message),
+    });
 
     const ingest = useMutation({
         mutationFn: () => api.classroom.ingest(assignment.id, {
-            course_id: assignment.course_id,
-            coursework_id: assignment.classroom_id ?? "",
+            course_id: courseIdInput.trim(),
+            coursework_id: courseworkIdInput.trim() || assignment.classroom_id || "",
+            force_reingest: forceReingest,
         }),
-        onSuccess: (s) => toast("success", "Ingested!", `${s.ingested} new submissions`),
+        onSuccess: (s) => {
+            toast("success", "Ingested", `${s.ingested} new submissions, ${s.skipped} skipped.`);
+            refreshAll();
+        },
         onError: (e: Error) => toast("error", "Ingest failed", e.message),
     });
     const syncDraft = useMutation({
         mutationFn: () => api.classroom.syncDraft(assignment.id),
-        onSuccess: (s) => toast("success", "Draft synced", `${s.pushed} grades pushed`),
+        onSuccess: (s) => {
+            toast("success", "Draft synced", `${s.pushed} grades pushed, ${s.skipped} skipped.`);
+            refreshAll();
+        },
         onError: (e: Error) => toast("error", "Sync failed", e.message),
     });
     const release = useMutation({
         mutationFn: () => api.classroom.release(assignment.id),
-        onSuccess: (s) => toast("success", "Grades released!", `${s.released} students notified`),
+        onSuccess: (s) => {
+            toast("success", "Grades released", `${s.released} students notified, ${s.skipped} skipped.`);
+            refreshAll();
+        },
         onError: (e: Error) => toast("error", "Release failed", e.message),
     });
+
+    const syncReady = (status?.sync_missing?.length ?? 0) === 0 && !!(courseworkIdInput.trim() || assignment.classroom_id);
 
     return (
         <div className="flex flex-col gap-6">
@@ -864,21 +960,79 @@ function ClassroomTab({ assignment }: { assignment: Assignment }) {
                         <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
                             {authStatus?.friendly_scopes?.join(" · ") || authStatus?.scopes?.length + " scopes" || "Checking…"}
                         </div>
+                        {!!authStatus?.authenticated && (
+                            <div style={{ fontSize: 12, color: authStatus?.ready ? "var(--success)" : "var(--warning)", marginTop: 4 }}>
+                                {authStatus?.ready
+                                    ? "Ready for create/sync/release actions."
+                                    : (authStatus?.has_required_scopes
+                                        ? "Scopes are complete; token/session needs refresh."
+                                        : `Missing required scopes: ${(authStatus?.missing_scopes ?? []).length}`)}
+                            </div>
+                        )}
+                        {!!authStatus?.authenticated && authStatus?.expired && (
+                            <div style={{ fontSize: 12, color: "var(--warning)", marginTop: 4 }}>
+                                Token is expired; reconnect if the next Classroom action fails.
+                            </div>
+                        )}
+                        {!authStatus?.authenticated && authStatus?.reason && (
+                            <div style={{ fontSize: 12, color: "var(--warning)", marginTop: 4 }}>
+                                {String(authStatus.reason)}
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2" style={{ marginLeft: "auto" }}>
+                        <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => reconnectClassroom.mutate(false)}
+                            disabled={reconnectClassroom.isPending}
+                        >
+                            {reconnectClassroom.isPending ? "Opening OAuth…" : "Reconnect"}
+                        </button>
+                        <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => reconnectClassroom.mutate(true)}
+                            disabled={reconnectClassroom.isPending}
+                            title="Forces full Google consent screen and token replacement"
+                        >
+                            {reconnectClassroom.isPending ? "Please finish in browser…" : "Force Re-auth"}
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* Coursework link */}
-            {!assignment.classroom_id && (
-                <div className="card" style={{ borderColor: "rgba(245,158,11,0.3)" }}>
-                    <div className="flex items-center gap-3">
-                        <AlertTriangle size={16} style={{ color: "var(--warning)" }} />
-                        <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                            No Classroom coursework linked. Edit the assignment to add a Coursework ID.
-                        </div>
+            <div className="card">
+                <h3 className="section-title" style={{ marginBottom: "var(--space-4)" }}>Coursework Link</h3>
+                <div className="flex flex-col gap-3">
+                    <div className="input-group">
+                        <label className="input-label">Classroom Course ID</label>
+                        <input className="input" value={courseIdInput} onChange={e => setCourseIdInput(e.target.value)} placeholder="e.g. 765432109876" />
                     </div>
+                    <div className="input-group">
+                        <label className="input-label">Classroom Coursework ID</label>
+                        <input className="input" value={courseworkIdInput} onChange={e => setCourseworkIdInput(e.target.value)} placeholder="Existing coursework id (optional if creating new)" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button className="btn btn-secondary" onClick={() => linkCoursework.mutate()} disabled={linkCoursework.isPending || !courseIdInput.trim() || !courseworkIdInput.trim() || !authStatus?.authenticated}>
+                            {linkCoursework.isPending ? "Linking…" : "Link Existing Coursework"}
+                        </button>
+                        <button className="btn btn-primary" onClick={() => createCoursework.mutate()} disabled={createCoursework.isPending || !courseIdInput.trim() || !authStatus?.authenticated || !authStatus?.has_required_scopes}>
+                            {createCoursework.isPending ? "Creating…" : "Create Coursework From Assignment"}
+                        </button>
+                        <button className="btn btn-ghost" onClick={() => updateCoursework.mutate()} disabled={updateCoursework.isPending || !courseIdInput.trim() || !assignment.classroom_id || !authStatus?.authenticated || !authStatus?.has_required_scopes}>
+                            {updateCoursework.isPending ? "Updating…" : "Update Linked Coursework"}
+                        </button>
+                    </div>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-muted)" }}>
+                        <input type="checkbox" checked={publishOnCreate} onChange={e => setPublishOnCreate(e.target.checked)} />
+                        Publish immediately when creating coursework
+                    </label>
+                    {!!courseworkList?.items?.length && (
+                        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                            Recent Coursework: {courseworkList.items.slice(0, 5).map(cw => `${cw.title} (${cw.id})`).join(" | ")}
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
 
             {/* Sync stats */}
             <div className="stat-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
@@ -897,12 +1051,21 @@ function ClassroomTab({ assignment }: { assignment: Assignment }) {
             {/* Actions */}
             <div className="card">
                 <h3 className="section-title" style={{ marginBottom: "var(--space-4)" }}>Sync Actions</h3>
+                <div style={{ fontSize: 12, color: syncReady ? "var(--success)" : "var(--warning)", marginBottom: "var(--space-3)" }}>
+                    {syncReady
+                        ? "Sync checks passed. Grade push is enabled."
+                        : `Sync checks pending: ${(status?.sync_missing ?? ["link coursework"]).join(", ")}`}
+                </div>
                 <div className="flex flex-col gap-3">
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-muted)" }}>
+                        <input type="checkbox" checked={forceReingest} onChange={e => setForceReingest(e.target.checked)} />
+                        Force re-ingest (replace existing ingested files for matching students)
+                    </label>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-3)" }}>
                         <button
                             className="btn btn-secondary"
                             onClick={() => ingest.mutate()}
-                            disabled={ingest.isPending || !authStatus?.authenticated}
+                            disabled={ingest.isPending || !authStatus?.authenticated || !authStatus?.has_required_scopes || !courseIdInput.trim() || !(courseworkIdInput.trim() || assignment.classroom_id)}
                         >
                             <Download size={13} />
                             {ingest.isPending ? "Pulling…" : "Pull Submissions"}
@@ -910,7 +1073,7 @@ function ClassroomTab({ assignment }: { assignment: Assignment }) {
                         <button
                             className="btn btn-secondary"
                             onClick={() => syncDraft.mutate()}
-                            disabled={syncDraft.isPending || !authStatus?.authenticated}
+                            disabled={syncDraft.isPending || !authStatus?.authenticated || !authStatus?.has_required_scopes || !syncReady}
                         >
                             <Send size={13} />
                             {syncDraft.isPending ? "Pushing…" : "Push Draft Grades"}
@@ -918,7 +1081,7 @@ function ClassroomTab({ assignment }: { assignment: Assignment }) {
                         <button
                             className="btn btn-success"
                             onClick={() => release.mutate()}
-                            disabled={release.isPending || !authStatus?.authenticated}
+                            disabled={release.isPending || !authStatus?.authenticated || !authStatus?.has_required_scopes || !syncReady}
                         >
                             <Globe size={13} />
                             {release.isPending ? "Releasing…" : "Release Grades"}
@@ -1605,6 +1768,14 @@ export default function AssignmentDetailPage() {
         },
         onError: (e: Error) => { toast("error", "Publish failed", e.message); setPublishConfirm(false); },
     });
+    const updatePromptMutation = useMutation({
+        mutationFn: (nextPrompt: string) => api.assignments.update(id, { authoring_prompt: nextPrompt }),
+        onSuccess: () => {
+            toast("success", "Prompt updated", "Saved assignment authoring prompt.");
+            qc.invalidateQueries({ queryKey: ["assignment", id] });
+        },
+        onError: (e: Error) => toast("error", "Failed to update prompt", e.message),
+    });
 
     if (aLoading) {
         return (
@@ -1691,6 +1862,9 @@ export default function AssignmentDetailPage() {
                         onSwitchTab={setActiveTab}
                         envVersions={envVersions}
                         hasApprovedTests={hasApprovedTests}
+                        onUpdateAuthoringPrompt={async (nextPrompt: string) => {
+                            await updatePromptMutation.mutateAsync(nextPrompt);
+                        }}
                     />
                 )}
                 {activeTab === "submissions" && (

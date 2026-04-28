@@ -261,6 +261,7 @@ export default function SubmissionDetailPage() {
     const [overrideBreakdown, setOverrideBreakdown] = useState("{}");
     const [overrideReason, setOverrideReason] = useState("");
     const [overrideJsonError, setOverrideJsonError] = useState<string | null>(null);
+    const [previewPage, setPreviewPage] = useState(1);
     const assignmentIdFromQuery = searchParams.get("assignmentId");
 
     const { data: sub, isLoading: sLoading } = useQuery({
@@ -413,6 +414,9 @@ export default function SubmissionDetailPage() {
     const blocks: OcrBlock[] = sub.ocr_result?.blocks ?? [];
     const maxMarks = sub.assignment_max_marks || 100;
     const isCoding = !!sub.assignment_has_code_question;
+    const pageCount = Number(sub.ocr_result?.page_count ?? 1);
+    const safePreviewPage = Math.max(1, Math.min(previewPage, pageCount));
+    const isMultiPage = pageCount > 1;
     const hasCompletedJob = codeEvalJobs.some(j => j.status === "COMPLETED");
     const hasActiveJob = codeEvalJobs.some(j => !["COMPLETED", "FAILED"].includes(j.status));
     const backHref = sub.assignment_id
@@ -627,7 +631,30 @@ export default function SubmissionDetailPage() {
 
                         {/* Panel 1: Submission image */}
                         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-                            <div style={{ padding: "var(--space-4)", borderBottom: "1px solid var(--border)", fontSize: 13, fontWeight: 600 }}>Scan Image</div>
+                            <div style={{ padding: "var(--space-4)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)" }}>
+                                <span style={{ fontSize: 13, fontWeight: 600 }}>Scan Image</span>
+                                {isMultiPage && (
+                                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                                        <button
+                                            className="btn btn-ghost btn-sm"
+                                            onClick={() => setPreviewPage(Math.max(1, safePreviewPage - 1))}
+                                            disabled={safePreviewPage <= 1}
+                                        >
+                                            Prev
+                                        </button>
+                                        <span style={{ fontSize: 11, color: "var(--text-muted)", minWidth: 64, textAlign: "center" }}>
+                                            Page {safePreviewPage}/{pageCount}
+                                        </span>
+                                        <button
+                                            className="btn btn-ghost btn-sm"
+                                            onClick={() => setPreviewPage(Math.min(pageCount, safePreviewPage + 1))}
+                                            disabled={safePreviewPage >= pageCount}
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                             <div style={{ background: "var(--bg-base)", minHeight: 400, display: "flex", alignItems: "center", justifyContent: "center" }}>
                                 {sub.status === "pending" ? (
                                     <div style={{ textAlign: "center", color: "var(--text-muted)", padding: "var(--space-6)" }}>
@@ -637,7 +664,7 @@ export default function SubmissionDetailPage() {
                                 ) : (
                                     // eslint-disable-next-line @next/next/no-img-element
                                     <img
-                                        src={api.submissions.imageUrl(id)}
+                                        src={api.submissions.imageUrl(id, safePreviewPage)}
                                         alt={`Submission scan for ${sub.student_id}`}
                                         style={{ width: "100%", height: "auto", maxHeight: 600, objectFit: "contain" }}
                                         onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
@@ -668,6 +695,9 @@ export default function SubmissionDetailPage() {
                                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px var(--space-3)", borderBottom: editingBlock === block.index ? "1px solid var(--border)" : "none" }}>
                                             <div className="flex items-center gap-2">
                                                 <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-muted)", width: 20 }}>#{block.index + 1}</span>
+                                                {block.page !== undefined && (
+                                                    <span className="badge badge-default" style={{ fontSize: 10 }}>P{block.page}</span>
+                                                )}
                                                 {block.flagged && <span className="badge badge-warning" style={{ fontSize: 10 }}>Flagged</span>}
                                                 {block.confidence !== undefined && (
                                                     <span style={{ fontSize: 10, color: block.confidence > 0.7 ? "var(--success)" : "var(--warning)" }}>

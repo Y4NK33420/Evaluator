@@ -130,6 +130,9 @@ export default function NewAssignmentPage() {
             description: kind === "coding"
                 ? problemStatement.trim() || undefined
                 : description.trim() || undefined,
+            authoring_prompt: kind === "coding"
+                ? (problemStatement.trim() || undefined)
+                : (assignmentContent.trim() || description.trim() || undefined),
             max_marks: parseFloat(maxMarks) || 100,
             question_type: (kind === "coding" ? "subjective" : kind) as QuestionType,
             has_code_question: kind === "coding",

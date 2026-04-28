@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -29,6 +29,31 @@ class IngestRequest(BaseModel):
     course_id: str
     coursework_id: str           # Google Classroom courseWorkId
     force_reingest: bool = False  # re-download even if submission already exists
+
+
+class CreateCourseworkRequest(BaseModel):
+    course_id: str
+    publish: bool = True
+    title: str | None = None
+    description: str | None = None
+    max_points: float | None = None
+
+
+class UpdateCourseworkRequest(BaseModel):
+    course_id: str
+    title: str | None = None
+    description: str | None = None
+    max_points: float | None = None
+    publish: bool | None = None
+
+
+class LinkCourseworkRequest(BaseModel):
+    course_id: str
+    coursework_id: str
+
+
+class GenerateTokenRequest(BaseModel):
+    force_reauth: bool = False
 
 
 class SyncSummary(BaseModel):
@@ -64,6 +89,34 @@ def _classroom_sync_import():
         )
 
 
+def _resolve_classroom_course_id(assignment: Assignment, requested_course_id: str | None) -> str:
+    course_id = (requested_course_id or assignment.course_id or "").strip()
+    if course_id.startswith("classroom-"):
+        course_id = course_id[len("classroom-") :]
+    if not course_id:
+        raise HTTPException(422, "Classroom course_id is required")
+    return course_id
+
+
+def _require_sync_ready_coursework(cs, assignment: Assignment, course_id: str) -> dict:
+    coursework_id = (assignment.classroom_id or "").strip()
+    if not coursework_id:
+        raise HTTPException(422, "Assignment is not linked to Classroom coursework")
+    validation = cs.validate_coursework_grade_sync_target(course_id, coursework_id)
+    if not validation.get("ready"):
+        raise HTTPException(
+            409,
+            {
+                "message": "Classroom coursework is not eligible for AMGS grade sync",
+                "checks": validation.get("checks", {}),
+                "missing": validation.get("missing", []),
+                "coursework_id": coursework_id,
+                "course_id": course_id,
+            },
+        )
+    return validation.get("coursework", {})
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.get("/auth-status")
@@ -74,7 +127,7 @@ def auth_status():
 
 
 @router.post("/generate-token")
-def generate_token():
+def generate_token(body: GenerateTokenRequest | None = None):
     """Trigger the OAuth browser flow to create/refresh token.json.
 
     Requires credentials.json to be present.  Opens a local browser window
@@ -96,9 +149,7 @@ def generate_token():
         )
 
     try:
-        # _get_services() will run the browser flow if token.json is absent / expired
-        cs._get_services()
-        return cs.get_auth_status()
+        return cs.regenerate_token(force_reauth=bool(body and body.force_reauth))
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"OAuth flow failed: {exc}") from exc
 
@@ -150,6 +201,143 @@ def ingest_submissions(
     return SyncSummary(assignment_id=assignment_id, **result)
 
 
+@router.get("/coursework")
+def list_coursework(course_id: str):
+    """List coursework entries for a Classroom course to help linking."""
+    cs = _classroom_sync_import()
+    try:
+        items = cs.list_coursework(course_id=course_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(503, str(exc))
+    except Exception as exc:
+        log.exception("coursework list failed for course %s", course_id)
+        raise HTTPException(500, f"Coursework list failed: {exc}")
+
+    return {
+        "course_id": course_id,
+        "items": [
+            {
+                "id": item.get("id"),
+                "title": item.get("title"),
+                "state": item.get("state"),
+                "workType": item.get("workType"),
+                "maxPoints": item.get("maxPoints"),
+                "associatedWithDeveloper": item.get("associatedWithDeveloper"),
+                "updateTime": item.get("updateTime"),
+            }
+            for item in items
+        ],
+    }
+
+
+@router.post("/{assignment_id}/link-coursework")
+def link_coursework(
+    assignment_id: str,
+    body: LinkCourseworkRequest,
+    db: Session = Depends(get_db),
+):
+    """Link an existing Classroom coursework to an AMGS assignment."""
+    assignment = _get_assignment_or_404(assignment_id, db)
+    cs = _classroom_sync_import()
+    course_id = _resolve_classroom_course_id(assignment, body.course_id)
+
+    try:
+        cw = cs.get_coursework(course_id=course_id, coursework_id=body.coursework_id)
+    except Exception as exc:
+        raise HTTPException(422, f"Could not fetch coursework {body.coursework_id}: {exc}")
+
+    assignment.classroom_id = body.coursework_id
+    assignment.course_id = course_id
+    db.commit()
+    db.refresh(assignment)
+    return {
+        "assignment_id": assignment.id,
+        "course_id": course_id,
+        "coursework_id": assignment.classroom_id,
+        "coursework": cw,
+    }
+
+
+@router.post("/{assignment_id}/create-coursework")
+def create_coursework(
+    assignment_id: str,
+    body: CreateCourseworkRequest,
+    db: Session = Depends(get_db),
+):
+    """Create Classroom coursework from AMGS assignment and link it."""
+    assignment = _get_assignment_or_404(assignment_id, db)
+    cs = _classroom_sync_import()
+    course_id = _resolve_classroom_course_id(assignment, body.course_id)
+
+    title = (body.title or assignment.title or "").strip()
+    if not title:
+        raise HTTPException(422, "Assignment title is required to create coursework")
+
+    try:
+        cw = cs.create_coursework_for_assignment(
+            course_id=course_id,
+            title=title,
+            description=body.description if body.description is not None else assignment.description,
+            max_points=body.max_points if body.max_points is not None else assignment.max_marks,
+            state="PUBLISHED" if body.publish else "DRAFT",
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(503, str(exc))
+    except Exception as exc:
+        log.exception("coursework create failed for assignment %s", assignment_id)
+        raise HTTPException(500, f"Create coursework failed: {exc}")
+
+    assignment.classroom_id = cw.get("id")
+    assignment.course_id = course_id
+    db.commit()
+    db.refresh(assignment)
+    return {
+        "assignment_id": assignment.id,
+        "course_id": course_id,
+        "coursework_id": assignment.classroom_id,
+        "coursework": cw,
+    }
+
+
+@router.patch("/{assignment_id}/coursework")
+def update_coursework(
+    assignment_id: str,
+    body: UpdateCourseworkRequest,
+    db: Session = Depends(get_db),
+):
+    """Update linked Classroom coursework from AMGS assignment fields."""
+    assignment = _get_assignment_or_404(assignment_id, db)
+    cs = _classroom_sync_import()
+    course_id = _resolve_classroom_course_id(assignment, body.course_id)
+    coursework_id = (assignment.classroom_id or "").strip()
+    if not coursework_id:
+        raise HTTPException(422, "Assignment is not linked to Classroom coursework")
+
+    try:
+        cw = cs.update_coursework_for_assignment(
+            course_id=course_id,
+            coursework_id=coursework_id,
+            title=body.title,
+            description=body.description,
+            max_points=body.max_points,
+            state=("PUBLISHED" if body.publish else "DRAFT") if body.publish is not None else None,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(503, str(exc))
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    except Exception as exc:
+        log.exception("coursework update failed for assignment %s", assignment_id)
+        raise HTTPException(500, f"Update coursework failed: {exc}")
+
+    return {
+        "assignment_id": assignment.id,
+        "course_id": course_id,
+        "coursework_id": coursework_id,
+        "coursework": cw,
+    }
+
+
 @router.post("/{assignment_id}/sync-draft", response_model=SyncSummary)
 def sync_draft_grades(
     assignment_id: str,
@@ -160,8 +348,10 @@ def sync_draft_grades(
     Draft grades are visible to teachers but NOT to students until released.
     Safe to call multiple times — Classroom accepts repeated PATCH calls.
     """
-    _get_assignment_or_404(assignment_id, db)
+    assignment = _get_assignment_or_404(assignment_id, db)
     cs = _classroom_sync_import()
+    course_id = _resolve_classroom_course_id(assignment, assignment.course_id)
+    coursework = _require_sync_ready_coursework(cs, assignment, course_id)
     try:
         result = cs.push_draft_grades_bulk(assignment_id=assignment_id, db=db)
     except FileNotFoundError as exc:
@@ -170,8 +360,13 @@ def sync_draft_grades(
         log.exception("draft grade sync failed for assignment %s", assignment_id)
         raise HTTPException(500, f"Draft grade sync failed: {exc}")
 
-    return SyncSummary(assignment_id=assignment_id, pushed=result["pushed"],
-                       skipped=result["skipped"], errors=result["errors"])
+    return SyncSummary(
+        assignment_id=assignment_id,
+        pushed=result["pushed"],
+        skipped=result["skipped"],
+        errors=result["errors"],
+        status=f"sync_target:{coursework.get('id')}",
+    )
 
 
 @router.post("/{assignment_id}/release", response_model=SyncSummary)
@@ -184,8 +379,10 @@ def release_grades(
     This is a one-way operation: once grades are returned in Classroom,
     students can see them. Confirm before calling on a live course.
     """
-    _get_assignment_or_404(assignment_id, db)
+    assignment = _get_assignment_or_404(assignment_id, db)
     cs = _classroom_sync_import()
+    course_id = _resolve_classroom_course_id(assignment, assignment.course_id)
+    coursework = _require_sync_ready_coursework(cs, assignment, course_id)
     try:
         result = cs.release_grades_bulk(assignment_id=assignment_id, db=db)
     except FileNotFoundError as exc:
@@ -194,8 +391,13 @@ def release_grades(
         log.exception("grade release failed for assignment %s", assignment_id)
         raise HTTPException(500, f"Grade release failed: {exc}")
 
-    return SyncSummary(assignment_id=assignment_id, released=result["released"],
-                       skipped=result["skipped"], errors=result["errors"])
+    return SyncSummary(
+        assignment_id=assignment_id,
+        released=result["released"],
+        skipped=result["skipped"],
+        errors=result["errors"],
+        status=f"sync_target:{coursework.get('id')}",
+    )
 
 
 @router.get("/{assignment_id}/status")
@@ -204,7 +406,21 @@ def classroom_sync_status(
     db: Session = Depends(get_db),
 ):
     """Overview of how many submissions are ingested and graded for an assignment."""
-    _get_assignment_or_404(assignment_id, db)
+    assignment = _get_assignment_or_404(assignment_id, db)
+    cs = _classroom_sync_import()
+    course_id = _resolve_classroom_course_id(assignment, assignment.course_id)
+    coursework_meta = None
+    sync_checks = {}
+    sync_missing: list[str] = []
+    try:
+        if assignment.classroom_id:
+            validation = cs.validate_coursework_grade_sync_target(course_id, assignment.classroom_id)
+            coursework_meta = validation.get("coursework")
+            sync_checks = validation.get("checks", {})
+            sync_missing = validation.get("missing", [])
+    except Exception as exc:
+        sync_checks = {"coursework_lookup_failed": False}
+        sync_missing = [str(exc)]
 
     total_submissions = (
         db.query(Submission)
@@ -250,8 +466,13 @@ def classroom_sync_status(
 
     return {
         "assignment_id": assignment_id,
+        "course_id": course_id,
+        "classroom_id": assignment.classroom_id,
         "total_submissions": total_submissions,
         "graded": graded,
         "ungraded": ungraded,
+        "sync_checks": sync_checks,
+        "sync_missing": sync_missing,
+        "coursework": coursework_meta,
         "submissions": rows,
     }
